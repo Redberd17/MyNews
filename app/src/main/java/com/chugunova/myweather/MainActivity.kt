@@ -1,8 +1,8 @@
 package com.chugunova.myweather
 
-import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import com.chugunova.myweather.ui.main.MainFragment
+import androidx.appcompat.app.AppCompatActivity
+import com.chugunova.myweather.ui.mainScreenFragment.MainScreenFragment
 
 class MainActivity : AppCompatActivity() {
 
@@ -11,7 +11,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.main_activity)
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
-                .replace(R.id.container, MainFragment.newInstance())
+                .replace(R.id.container, MainScreenFragment.newInstance())
                 .commitNow()
         }
     }
