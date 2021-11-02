@@ -1,8 +1,8 @@
-package com.chugunova.myweather
+package com.chugunova.mynews
 
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.chugunova.myweather.ui.mainScreenFragment.MainScreenFragment
+import com.chugunova.mynews.mainscreenfragment.MainScreenFragment
 
 class MainActivity : AppCompatActivity() {
 

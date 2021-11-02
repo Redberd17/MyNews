@@ -1,13 +1,13 @@
-package com.chugunova.myweather.ui.mainScreenFragment
+package com.chugunova.mynews.mainscreenfragment
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
-import com.chugunova.myweather.R
-import com.chugunova.myweather.ui.api.ConfigRetrofit
-import com.chugunova.myweather.ui.model.ForecastResponse
+import com.chugunova.mynews.R
+import com.chugunova.mynews.api.ConfigRetrofit
+import com.chugunova.mynews.model.NewsResponse
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -29,19 +29,19 @@ class MainScreenFragment : Fragment() {
 
     override fun onStart() {
         super.onStart()
-        val forecast = ConfigRetrofit.getForecast("London", 1)
-        forecast.enqueue(object : Callback<ForecastResponse> {
+        val news = ConfigRetrofit.getTopHeadlinesNews("ru")
+        news.enqueue(object : Callback<NewsResponse> {
             override fun onResponse(
-                call: Call<ForecastResponse>,
-                response: Response<ForecastResponse>
+                call: Call<NewsResponse>,
+                response: Response<NewsResponse>
             ) {
                 if (response.isSuccessful) {
-                    val forecastResponse = response.body()
-                    forecastResponse?.location
+                    val newsResponse = response.body()
+                    newsResponse?.articles
                 }
             }
 
-            override fun onFailure(call: Call<ForecastResponse>, t: Throwable) {
+            override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
                 t.printStackTrace()
             }
         })

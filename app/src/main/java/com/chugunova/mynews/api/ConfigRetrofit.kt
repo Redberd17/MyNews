@@ -1,6 +1,6 @@
-package com.chugunova.myweather.ui.api
+package com.chugunova.mynews.api
 
-import com.chugunova.myweather.ui.model.ForecastResponse
+import com.chugunova.mynews.model.NewsResponse
 import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Retrofit
@@ -11,10 +11,10 @@ object ConfigRetrofit {
 
     var retrofit: Api? = null
 
-    private const val baseUrl: String = "https://api.weatherapi.com"
-    private const val apiKey: String = "f2a3217fc2bf4e5d809113534213010"
+    private const val baseUrl: String = "https://newsapi.org/v2/"
+    private const val apiKey: String = "a4c6d91742e74962957312c56c72e861"
 
-    private fun configureRetrofit(): Api? {
+    private fun configureRetrofit(): Api {
         if (retrofit == null) {
             val okHttpClient = OkHttpClient.Builder()
                 .readTimeout(2, TimeUnit.SECONDS)
@@ -27,11 +27,15 @@ object ConfigRetrofit {
                 .build()
                 .create(Api::class.java)
         }
-        return retrofit
+        return retrofit!!
     }
 
 
-    fun getForecast(q: String, days: Int): Call<ForecastResponse> {
-        return configureRetrofit()!!.getForecast(apiKey, q, days)
+    fun getEverythingNews(q: String): Call<NewsResponse> {
+        return configureRetrofit().getEverythingNews(q, apiKey)
+    }
+
+    fun getTopHeadlinesNews(country: String): Call<NewsResponse> {
+        return configureRetrofit().getTopHeadlinesNews(country, apiKey)
     }
 }
