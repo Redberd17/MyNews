@@ -31,8 +31,8 @@ object ConfigRetrofit {
     }
 
 
-    fun getEverythingNews(q: String): Call<NewsResponse> {
-        return configureRetrofit().getEverythingNews(q, apiKey)
+    fun getEverythingNews(q: String, pageSize: Int, page: Int): Call<NewsResponse> {
+        return configureRetrofit().getEverythingNews(q, apiKey, pageSize, page)
     }
 
     fun getTopHeadlinesNews(country: String, page: Int): Call<NewsResponse> {

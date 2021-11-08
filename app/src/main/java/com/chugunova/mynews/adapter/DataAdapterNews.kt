@@ -27,6 +27,11 @@ class DataAdapterNews : RecyclerView.Adapter<DataAdapterNews.ViewHolder>() {
         this.notifyDataSetChanged()
     }
 
+    fun deleteNewsItems() {
+        this.newsItems.clear()
+        this.notifyDataSetChanged()
+    }
+
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
         fun bind() {
             val news = newsItems[bindingAdapterPosition]
