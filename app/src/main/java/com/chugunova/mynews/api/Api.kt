@@ -16,6 +16,7 @@ interface Api {
     @GET("top-headlines")
     fun getTopHeadlinesNews(
         @Query("country") country: String,
-        @Query("apiKey") apiKey: String
+        @Query("apiKey") apiKey: String,
+        @Query("page") page: Int
     ): Call<NewsResponse>
 }

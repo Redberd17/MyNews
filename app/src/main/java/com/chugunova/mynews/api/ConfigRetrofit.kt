@@ -1,11 +1,11 @@
 package com.chugunova.mynews.api
 
 import com.chugunova.mynews.model.NewsResponse
+import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
 import retrofit2.Call
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
-import java.util.concurrent.TimeUnit
 
 object ConfigRetrofit {
 
@@ -35,7 +35,7 @@ object ConfigRetrofit {
         return configureRetrofit().getEverythingNews(q, apiKey)
     }
 
-    fun getTopHeadlinesNews(country: String): Call<NewsResponse> {
-        return configureRetrofit().getTopHeadlinesNews(country, apiKey)
+    fun getTopHeadlinesNews(country: String, page: Int): Call<NewsResponse> {
+        return configureRetrofit().getTopHeadlinesNews(country, apiKey, page)
     }
 }
