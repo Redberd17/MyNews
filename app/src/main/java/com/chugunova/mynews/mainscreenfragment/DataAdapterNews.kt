@@ -1,4 +1,4 @@
-package com.chugunova.mynews.adapter
+package com.chugunova.mynews.mainscreenfragment
 
 import android.content.Context
 import android.os.Bundle
@@ -10,9 +10,9 @@ import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.chugunova.mynews.R
 import com.chugunova.mynews.fullscreenfragment.FullscreenFragment
-import com.chugunova.mynews.mainscreenfragment.MainScreenFragment
 import com.chugunova.mynews.model.Articles
 import com.chugunova.mynews.model.ArticlesWrapper
+import com.chugunova.mynews.utils.GlideApp
 import java.util.*
 import kotlinx.android.synthetic.main.news_item.view.newsItem
 import kotlinx.android.synthetic.main.news_item.view.newsItemTitle
@@ -38,7 +38,9 @@ class DataAdapterNews : RecyclerView.Adapter<DataAdapterNews.ViewHolder>() {
             GlideApp.with(itemView.context)
                 .load(news.urlToImage)
                 .error(R.drawable.ic_launcher_background)
+                .placeholder(R.drawable.spinner_ring)
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .dontTransform()
                 .into(itemView.newsItem)
 
             itemView.apply {

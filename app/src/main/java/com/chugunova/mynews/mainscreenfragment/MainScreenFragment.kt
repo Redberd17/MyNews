@@ -13,7 +13,6 @@ import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.chugunova.mynews.R
-import com.chugunova.mynews.adapter.DataAdapterNews
 import com.chugunova.mynews.api.ConfigRetrofit
 import com.chugunova.mynews.model.NewsResponse
 import retrofit2.Call

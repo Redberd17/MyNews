@@ -1,28 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<com.chugunova.mynews.mainscreenfragment.SquareLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<com.chugunova.mynews.utils.SquareLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/main"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clickable="true"
     android:foreground="?selectableItemBackground">
 
-    <ImageView
-        android:id="@+id/newsItem"
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_margin="5dp" />
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/newsItemTitle"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_below="@id/newsItem"
-        android:layout_gravity="center"
-        android:layout_marginStart="15dp"
-        android:layout_marginEnd="15dp"
-        android:ellipsize="end"
-        android:maxLines="3" />
-</com.chugunova.mynews.mainscreenfragment.SquareLayout>
+        <ImageView
+            android:id="@+id/newsItem"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:layout_margin="5dp"
+            android:layout_weight="2" />
+
+        <TextView
+            android:id="@+id/newsItemTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginStart="15dp"
+            android:layout_marginEnd="15dp"
+            android:layout_weight="1"
+            android:ellipsize="end"
+            android:maxLines="3" />
+    </LinearLayout>
+
+</com.chugunova.mynews.utils.SquareLayout>
 
 
 

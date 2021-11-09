@@ -1,4 +1,4 @@
-package com.chugunova.mynews.mainscreenfragment
+package com.chugunova.mynews.utils
 
 import android.content.Context
 import android.util.AttributeSet

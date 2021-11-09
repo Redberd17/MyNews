@@ -1,4 +1,4 @@
-package com.chugunova.mynews.adapter
+package com.chugunova.mynews.utils
 
 import com.bumptech.glide.annotation.GlideModule
 import com.bumptech.glide.module.AppGlideModule
