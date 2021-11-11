@@ -15,6 +15,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.chugunova.mynews.R
 import com.chugunova.mynews.api.ConfigRetrofit
 import com.chugunova.mynews.model.NewsResponse
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -76,6 +77,7 @@ class MainScreenFragment : Fragment() {
         super.onCreateOptionsMenu(menu, inflater)
         inflater.inflate(R.menu.menu, menu)
         val searchItem = menu.findItem(R.id.search)
+        val sortItem = menu.findItem(R.id.sort)
         val searchView = searchItem?.actionView as SearchView
         searchView.setOnCloseListener {
             currentSearchPage = 1
@@ -94,6 +96,16 @@ class MainScreenFragment : Fragment() {
                 return false
             }
         })
+        sortItem.setOnMenuItemClickListener {
+            showSortDialog()
+            false
+        }
+    }
+
+    private fun showSortDialog() {
+        val bottomSheetDialog = BottomSheetDialog(requireContext())
+        bottomSheetDialog.setContentView(R.layout.bottoms_sheet)
+        bottomSheetDialog.show()
     }
 
     private fun loadCountryNews() {
