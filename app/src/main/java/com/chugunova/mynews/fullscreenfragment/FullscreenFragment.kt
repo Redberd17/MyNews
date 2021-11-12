@@ -29,7 +29,14 @@ class FullscreenFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fullscreen_news_fragment, container, false)
+        /*val webView = view.findViewById(R.id.webView) as WebView
+        webView.webViewClient = WebViewClient()
+        webView.loadUrl("https://www.sport-express.ru/football/rfpl/news/massimo-karrera-zayavil-chto-vsegda-gotov-vernutsya-v-spartak-1854462/")*/
+        return inflater.inflate(R.layout.fullscreen_news_fragment, container, false)
+    }
+
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
         viewPager = view.findViewById(R.id.viewPager)
         newsItems =
             (arguments?.getSerializable(getString(R.string.news_items)) as ArticlesWrapper).articles
@@ -37,10 +44,6 @@ class FullscreenFragment : Fragment() {
         position = arguments?.getInt(getString(R.string.position)) as Int
         viewPager.adapter = fullscreenPagerAdapter
         setChosenNews(position)
-        /*val webView = view.findViewById(R.id.webView) as WebView
-        webView.webViewClient = WebViewClient()
-        webView.loadUrl("https://www.sport-express.ru/football/rfpl/news/massimo-karrera-zayavil-chto-vsegda-gotov-vernutsya-v-spartak-1854462/")*/
-        return view
     }
 
     private fun setChosenNews(position: Int) {

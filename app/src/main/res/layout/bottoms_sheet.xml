@@ -3,7 +3,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="vertical"
-    android:paddingTop="15dp">
+    android:paddingTop="10dp">
 
     <TextView
         android:layout_width="wrap_content"
@@ -12,11 +12,18 @@
         android:text="@string/sort"
         android:textSize="20sp" />
 
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="2dp"
+        android:layout_marginTop="10dp"
+        android:background="@color/colorPrimaryDark" />
+
     <LinearLayout
         android:id="@+id/relevancy"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?android:attr/selectableItemBackground"
+        android:gravity="center"
         android:orientation="horizontal">
 
         <TextView
@@ -27,11 +34,18 @@
             android:text="@string/by_relevancy" />
     </LinearLayout>
 
+    <View
+        android:layout_width="200dp"
+        android:layout_height="1dp"
+        android:layout_gravity="center"
+        android:background="@color/colorPrimaryDark" />
+
     <LinearLayout
         android:id="@+id/popularity"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?android:attr/selectableItemBackground"
+        android:gravity="center"
         android:orientation="horizontal">
 
         <TextView
@@ -43,11 +57,18 @@
 
     </LinearLayout>
 
+    <View
+        android:layout_width="200dp"
+        android:layout_height="1dp"
+        android:layout_gravity="center"
+        android:background="@color/colorPrimaryDark" />
+
     <LinearLayout
         android:id="@+id/publishedAt"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:background="?android:attr/selectableItemBackground"
+        android:gravity="center"
         android:orientation="horizontal">
 
         <TextView

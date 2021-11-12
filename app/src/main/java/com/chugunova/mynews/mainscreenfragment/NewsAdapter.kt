@@ -17,7 +17,7 @@ import java.util.*
 import kotlinx.android.synthetic.main.news_item.view.newsItem
 import kotlinx.android.synthetic.main.news_item.view.newsItemTitle
 
-class DataAdapterNews : RecyclerView.Adapter<DataAdapterNews.ViewHolder>() {
+class NewsAdapter : RecyclerView.Adapter<NewsAdapter.ViewHolder>() {
 
     private var newsItems = ArrayList<Articles>()
     private lateinit var context: Context

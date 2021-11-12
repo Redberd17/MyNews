@@ -21,4 +21,13 @@ interface Api {
         @Query("apiKey") apiKey: String,
         @Query("page") page: Int
     ): Call<NewsResponse>
+
+    @GET("everything")
+    fun sortNewsBy(
+        @Query("q") q: String,
+        @Query("apiKey") apiKey: String,
+        @Query("pageSize") pageSize: Int,
+        @Query("page") page: Int,
+        @Query("sortBy") sortBy: String
+    ): Call<NewsResponse>
 }

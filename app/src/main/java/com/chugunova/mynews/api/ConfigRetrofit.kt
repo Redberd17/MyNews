@@ -31,11 +31,24 @@ object ConfigRetrofit {
     }
 
 
-    fun getEverythingNews(q: String, pageSize: Int, page: Int): Call<NewsResponse> {
-        return configureRetrofit().getEverythingNews(q, apiKey, pageSize, page)
+    fun getEverythingNews(
+        q: String,
+        pageSize: Int,
+        page: Int,
+        sortBy: String?
+    ): Call<NewsResponse> {
+        return if (sortBy != null) {
+            configureRetrofit().sortNewsBy(q, apiKey, pageSize, page, sortBy)
+        } else {
+            configureRetrofit().getEverythingNews(q, apiKey, pageSize, page)
+        }
     }
 
     fun getTopHeadlinesNews(country: String, page: Int): Call<NewsResponse> {
         return configureRetrofit().getTopHeadlinesNews(country, apiKey, page)
+    }
+
+    fun sortNewsBy(q: String, pageSize: Int, page: Int, sortBy: String): Call<NewsResponse> {
+        return configureRetrofit().sortNewsBy(q, apiKey, pageSize, page, sortBy)
     }
 }
