@@ -33,7 +33,9 @@ class FullscreenPagerAdapter(private val newsItems: ArrayList<Articles>, val con
         GlideApp.with(view.context)
             .load(news.urlToImage)
             .error(R.drawable.ic_launcher_background)
+            .placeholder(R.drawable.spinner_ring)
             .diskCacheStrategy(DiskCacheStrategy.ALL)
+            .dontTransform()
             .into(view.fullscreen_image_item)
         view.fullNewsTitle.text = news.title
         view.fullNewsContent.text = news.description

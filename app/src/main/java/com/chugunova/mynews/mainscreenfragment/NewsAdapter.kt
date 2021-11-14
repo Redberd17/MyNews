@@ -1,23 +1,19 @@
 package com.chugunova.mynews.mainscreenfragment
 
 import android.content.Context
-import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.chugunova.mynews.R
-import com.chugunova.mynews.fullscreenfragment.FullscreenFragment
 import com.chugunova.mynews.model.Articles
-import com.chugunova.mynews.model.ArticlesWrapper
 import com.chugunova.mynews.utils.GlideApp
 import java.util.*
 import kotlinx.android.synthetic.main.news_item.view.newsItem
 import kotlinx.android.synthetic.main.news_item.view.newsItemTitle
 
-class NewsAdapter : RecyclerView.Adapter<NewsAdapter.ViewHolder>() {
+class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<NewsAdapter.ViewHolder>() {
 
     private var newsItems = ArrayList<Articles>()
     private lateinit var context: Context
@@ -30,6 +26,10 @@ class NewsAdapter : RecyclerView.Adapter<NewsAdapter.ViewHolder>() {
     fun deleteNewsItems() {
         this.newsItems.clear()
         this.notifyDataSetChanged()
+    }
+
+    fun getNewsItems(): ArrayList<Articles> {
+        return newsItems
     }
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
@@ -46,7 +46,7 @@ class NewsAdapter : RecyclerView.Adapter<NewsAdapter.ViewHolder>() {
             itemView.apply {
                 newsItemTitle.text = news.title
                 setOnClickListener {
-                    showFullScreenNewsFragment(bindingAdapterPosition)
+                    adapterOnClick(bindingAdapterPosition)
                 }
             }
         }
@@ -72,22 +72,5 @@ class NewsAdapter : RecyclerView.Adapter<NewsAdapter.ViewHolder>() {
 
     override fun getItemViewType(position: Int): Int {
         return position
-    }
-
-    private fun showFullScreenNewsFragment(position: Int) {
-        val activity = context as AppCompatActivity
-        val bundle = Bundle().apply {
-            putSerializable(context.getString(R.string.news_items), ArticlesWrapper(newsItems))
-            putInt(context.getString(R.string.position), position)
-        }
-        val mainScreenFragment =
-            activity.supportFragmentManager.findFragmentByTag(context.getString(R.string.main_screen_fragment)) as MainScreenFragment
-        activity.supportFragmentManager.beginTransaction().apply {
-            replace(
-                mainScreenFragment.id,
-                FullscreenFragment.newInstance().apply { arguments = bundle })
-            addToBackStack(null)
-            commit()
-        }
     }
 }

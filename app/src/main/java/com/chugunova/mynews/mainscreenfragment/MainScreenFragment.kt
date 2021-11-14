@@ -9,12 +9,15 @@ import android.view.ViewGroup
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.chugunova.mynews.R
 import com.chugunova.mynews.api.ConfigRetrofit
+import com.chugunova.mynews.fullscreenfragment.FullscreenFragment
+import com.chugunova.mynews.model.ArticlesWrapper
 import com.chugunova.mynews.model.NewsResponse
 import com.chugunova.mynews.utils.SortVariants
 import com.chugunova.mynews.utils.StringPool
@@ -32,16 +35,15 @@ class MainScreenFragment : Fragment() {
     private lateinit var searchView: SearchView
 
     private var availablePages: Int = 0
-    private var itemsOnPage: Int = 20
     private var currentCountryPage: Int = 1
     private var currentSearchPage: Int = 1
-    private var rowNumber: Int = 2
+    private var savedQuery: String = StringPool.EMPTY.value
+    private var savedSortByParameter = SortVariants.PUBLISHED_AT
 
     private val defaultCurrentSearchPage: Int = 1
     private val scrollVerticallyDirection: Int = 1
-
-    private var savedQuery: String = StringPool.EMPTY.value
-    private var savedSortByParameter = SortVariants.PUBLISHED_AT
+    private val rowNumber: Int = 2
+    private val itemsOnPage: Int = 20
 
     companion object {
         fun newInstance() = MainScreenFragment()
@@ -49,9 +51,28 @@ class MainScreenFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setHasOptionsMenu(true);
-        newsAdapter = NewsAdapter()
-        loadCountryNews()
+        setHasOptionsMenu(true)
+        newsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
+        savedInstanceState?.apply {
+            getSerializable(getString(R.string.news_items))?.let {
+                newsAdapter.addNewsItems((it as ArticlesWrapper).articles)
+            }
+            getInt(getString(R.string.available_pages)).let {
+                availablePages = it
+            }
+            getInt(getString(R.string.current_country_page)).let {
+                currentCountryPage = it
+            }
+            getInt(getString(R.string.current_search_page)).let {
+                currentSearchPage = it
+            }
+            getString(getString(R.string.saved_query))?.let {
+                savedQuery = it
+            }
+            getSerializable(getString(R.string.saved_sort_by_parameter))?.let {
+                savedSortByParameter = it as SortVariants
+            }
+        }
     }
 
     override fun onCreateView(
@@ -69,6 +90,9 @@ class MainScreenFragment : Fragment() {
             adapter = newsAdapter
         }
         showMoreButton = view.findViewById(R.id.showMoreButton)
+        if (newsAdapter.getNewsItems().isEmpty()) {
+            loadCountryNews()
+        }
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
                 super.onScrollStateChanged(recyclerView, newState)
@@ -116,6 +140,56 @@ class MainScreenFragment : Fragment() {
         sortItem.setOnMenuItemClickListener {
             showSortDialog()
             false
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.apply {
+            putSerializable(
+                getString(R.string.news_items),
+                ArticlesWrapper(newsAdapter.getNewsItems())
+            )
+            putInt(
+                getString(R.string.available_pages),
+                availablePages
+            )
+            putInt(
+                getString(R.string.current_country_page),
+                currentCountryPage
+            )
+            putInt(
+                getString(R.string.current_search_page),
+                currentSearchPage
+            )
+            putString(
+                getString(R.string.saved_query),
+                savedQuery
+            )
+            putSerializable(
+                getString(R.string.saved_sort_by_parameter),
+                savedSortByParameter
+            )
+        }
+    }
+
+    private fun showFullScreenNewsFragment(position: Int) {
+        val activity = context as AppCompatActivity
+        val bundle = Bundle().apply {
+            putSerializable(
+                getString(R.string.news_items),
+                ArticlesWrapper(newsAdapter.getNewsItems())
+            )
+            putInt(getString(R.string.position), position)
+        }
+        val mainScreenFragment =
+            activity.supportFragmentManager.findFragmentByTag(getString(R.string.main_screen_fragment)) as MainScreenFragment
+        activity.supportFragmentManager.beginTransaction().apply {
+            replace(
+                mainScreenFragment.id,
+                FullscreenFragment.newInstance().apply { arguments = bundle })
+            addToBackStack(null)
+            commit()
         }
     }
 

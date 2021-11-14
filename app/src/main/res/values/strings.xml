@@ -10,4 +10,9 @@
     <string name="by_popularity">By popularity</string>
     <string name="by_published_at">By published at</string>
     <string name="internet_error">Internet error</string>
+    <string name="available_pages">availablePages</string>
+    <string name="current_country_page">currentCountryPage</string>
+    <string name="current_search_page">currentSearchPage</string>
+    <string name="saved_query">savedQuery</string>
+    <string name="saved_sort_by_parameter">savedSortByParameter</string>
 </resources>

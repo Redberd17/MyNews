@@ -1,9 +1,12 @@
 package com.chugunova.mynews.fullscreenfragment
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.WebView
+import android.webkit.WebViewClient
 import androidx.fragment.app.Fragment
 import androidx.viewpager.widget.ViewPager
 import com.chugunova.mynews.R
@@ -20,6 +23,8 @@ class FullscreenFragment : Fragment() {
     private lateinit var viewPager: ViewPager
     private lateinit var fullscreenPagerAdapter: FullscreenPagerAdapter
 
+    private lateinit var webView: WebView
+
     companion object {
         fun newInstance() = FullscreenFragment()
     }
@@ -29,21 +34,25 @@ class FullscreenFragment : Fragment() {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        /*val webView = view.findViewById(R.id.webView) as WebView
+        val view = inflater.inflate(R.layout.fullscreen_news_fragment, container, false)
+        webView = view.findViewById(R.id.webView)
         webView.webViewClient = WebViewClient()
-        webView.loadUrl("https://www.sport-express.ru/football/rfpl/news/massimo-karrera-zayavil-chto-vsegda-gotov-vernutsya-v-spartak-1854462/")*/
-        return inflater.inflate(R.layout.fullscreen_news_fragment, container, false)
+        return view
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        viewPager = view.findViewById(R.id.viewPager)
+        //viewPager = view.findViewById(R.id.viewPager)
         newsItems =
             (arguments?.getSerializable(getString(R.string.news_items)) as ArticlesWrapper).articles
-        fullscreenPagerAdapter = FullscreenPagerAdapter(newsItems, requireContext())
+        //fullscreenPagerAdapter = FullscreenPagerAdapter(newsItems, requireContext())
         position = arguments?.getInt(getString(R.string.position)) as Int
-        viewPager.adapter = fullscreenPagerAdapter
-        setChosenNews(position)
+        val webSettings = webView.settings
+        webSettings.javaScriptEnabled = true
+        webView.loadUrl(newsItems[position].url)
+        //viewPager.adapter = fullscreenPagerAdapter
+        //setChosenNews(position)
     }
 
     private fun setChosenNews(position: Int) {

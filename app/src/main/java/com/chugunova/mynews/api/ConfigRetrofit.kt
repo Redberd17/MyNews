@@ -47,8 +47,4 @@ object ConfigRetrofit {
     fun getTopHeadlinesNews(country: String, page: Int): Call<NewsResponse> {
         return configureRetrofit().getTopHeadlinesNews(country, apiKey, page)
     }
-
-    fun sortNewsBy(q: String, pageSize: Int, page: Int, sortBy: String): Call<NewsResponse> {
-        return configureRetrofit().sortNewsBy(q, apiKey, pageSize, page, sortBy)
-    }
 }
