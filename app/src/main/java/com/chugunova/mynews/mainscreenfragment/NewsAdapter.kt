@@ -9,9 +9,13 @@ import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.chugunova.mynews.R
 import com.chugunova.mynews.model.Articles
 import com.chugunova.mynews.utils.GlideApp
+import com.chugunova.mynews.utils.StringPool
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlinx.android.synthetic.main.news_item.view.newsItem
 import kotlinx.android.synthetic.main.news_item.view.newsItemTitle
+import kotlinx.android.synthetic.main.news_item.view.publishedAt
 
 class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<NewsAdapter.ViewHolder>() {
 
@@ -45,6 +49,15 @@ class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<News
 
             itemView.apply {
                 newsItemTitle.text = news.title
+                val date = LocalDateTime.parse(
+                    news.publishedAt,
+                    DateTimeFormatter.ofPattern(StringPool.ISO_DATE_TIME.value)
+                )
+                publishedAt.text = context.getString(
+                    R.string.publishedAt, date.format(
+                        DateTimeFormatter.ofPattern(StringPool.MY_DATE_FORMAT.value)
+                    )
+                )
                 setOnClickListener {
                     adapterOnClick(bindingAdapterPosition)
                 }

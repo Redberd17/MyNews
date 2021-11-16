@@ -8,7 +8,6 @@ import android.view.ViewGroup
 import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.fragment.app.Fragment
-import androidx.viewpager.widget.ViewPager
 import com.chugunova.mynews.R
 import com.chugunova.mynews.model.Articles
 import com.chugunova.mynews.model.ArticlesWrapper
@@ -19,9 +18,6 @@ class FullscreenFragment : Fragment() {
 
     private var newsItems = ArrayList<Articles>()
     private var position = 0
-
-    private lateinit var viewPager: ViewPager
-    private lateinit var fullscreenPagerAdapter: FullscreenPagerAdapter
 
     private lateinit var webView: WebView
 
@@ -43,19 +39,11 @@ class FullscreenFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        //viewPager = view.findViewById(R.id.viewPager)
         newsItems =
             (arguments?.getSerializable(getString(R.string.news_items)) as ArticlesWrapper).articles
-        //fullscreenPagerAdapter = FullscreenPagerAdapter(newsItems, requireContext())
         position = arguments?.getInt(getString(R.string.position)) as Int
         val webSettings = webView.settings
         webSettings.javaScriptEnabled = true
         webView.loadUrl(newsItems[position].url)
-        //viewPager.adapter = fullscreenPagerAdapter
-        //setChosenNews(position)
-    }
-
-    private fun setChosenNews(position: Int) {
-        viewPager.setCurrentItem(position, false)
     }
 }

@@ -6,6 +6,7 @@
     <string name="show_more">Show more</string>
     <string name="search">Search</string>
     <string name="sort">Sort</string>
+    <string name="filter">Filter</string>
     <string name="by_relevancy">By relevancy</string>
     <string name="by_popularity">By popularity</string>
     <string name="by_published_at">By published at</string>
@@ -15,4 +16,6 @@
     <string name="current_search_page">currentSearchPage</string>
     <string name="saved_query">savedQuery</string>
     <string name="saved_sort_by_parameter">savedSortByParameter</string>
+    <string name="publishedAt">"Date: %1$s"</string>
+    <string name="ISO_DATE_TIME">"yyyy-MM-dd'T'HH:mm:ss'Z'"</string>
 </resources>
