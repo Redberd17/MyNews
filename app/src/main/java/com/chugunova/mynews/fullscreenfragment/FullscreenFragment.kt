@@ -9,14 +9,14 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import androidx.fragment.app.Fragment
 import com.chugunova.mynews.R
-import com.chugunova.mynews.model.Articles
+import com.chugunova.mynews.model.Article
 import com.chugunova.mynews.model.ArticlesWrapper
 import java.util.*
 
 
 class FullscreenFragment : Fragment() {
 
-    private var newsItems = ArrayList<Articles>()
+    private var newsItems = ArrayList<Article>()
     private var position = 0
 
     private lateinit var webView: WebView

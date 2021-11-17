@@ -5,5 +5,5 @@ import java.io.Serializable
 data class NewsResponse(
     val status: String,
     val totalResults: Int,
-    val articles: ArrayList<Articles>
+    val articles: ArrayList<Article>
 ) : Serializable

@@ -6,7 +6,6 @@ import android.view.Menu
 import android.view.MenuInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -17,11 +16,18 @@ import androidx.recyclerview.widget.RecyclerView
 import com.chugunova.mynews.R
 import com.chugunova.mynews.api.ConfigRetrofit
 import com.chugunova.mynews.fullscreenfragment.FullscreenFragment
+import com.chugunova.mynews.model.Article
 import com.chugunova.mynews.model.ArticlesWrapper
 import com.chugunova.mynews.model.NewsResponse
+import com.chugunova.mynews.utils.FilterVariants
+import com.chugunova.mynews.utils.NumberPool
 import com.chugunova.mynews.utils.SortVariants
 import com.chugunova.mynews.utils.StringPool
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.stream.Collectors
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -31,7 +37,7 @@ class MainScreenFragment : Fragment() {
 
     private lateinit var newsAdapter: NewsAdapter
     private lateinit var recyclerView: RecyclerView
-    private lateinit var showMoreButton: Button
+    private lateinit var showMoreButton: FloatingActionButton
     private lateinit var searchView: SearchView
 
     private var availablePages: Int = 0
@@ -94,8 +100,8 @@ class MainScreenFragment : Fragment() {
             loadCountryNews()
         }
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
-            override fun onScrollStateChanged(recyclerView: RecyclerView, newState: Int) {
-                super.onScrollStateChanged(recyclerView, newState)
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
                 if (!recyclerView.canScrollVertically(scrollVerticallyDirection) && currentCountryPage <= availablePages) {
                     showMoreButton.visibility = View.VISIBLE
                 } else {
@@ -116,6 +122,7 @@ class MainScreenFragment : Fragment() {
         inflater.inflate(R.menu.menu, menu)
         val searchItem = menu.findItem(R.id.search)
         val sortItem = menu.findItem(R.id.sort)
+        val filterItem = menu.findItem(R.id.filter)
         searchView = searchItem?.actionView as SearchView
         searchView.setOnSearchClickListener {
             searchView.setQuery(savedQuery, false)
@@ -139,6 +146,10 @@ class MainScreenFragment : Fragment() {
         }
         sortItem.setOnMenuItemClickListener {
             showSortDialog()
+            false
+        }
+        filterItem.setOnMenuItemClickListener {
+            showFilterDialog()
             false
         }
     }
@@ -195,7 +206,7 @@ class MainScreenFragment : Fragment() {
 
     private fun showSortDialog() {
         val bottomSheetDialog = BottomSheetDialog(requireContext())
-        bottomSheetDialog.setContentView(R.layout.bottoms_sheet)
+        bottomSheetDialog.setContentView(R.layout.sort_bottom_sheet)
         val relevancy = bottomSheetDialog.findViewById<LinearLayout>(R.id.relevancy)
         val popularity = bottomSheetDialog.findViewById<LinearLayout>(R.id.popularity)
         val publishedAt = bottomSheetDialog.findViewById<LinearLayout>(R.id.publishedAt)
@@ -211,11 +222,56 @@ class MainScreenFragment : Fragment() {
         bottomSheetDialog.show()
     }
 
+    private fun showFilterDialog() {
+        val bottomSheetDialog = BottomSheetDialog(requireContext())
+        bottomSheetDialog.setContentView(R.layout.filter_bottom_sheet)
+        val today = bottomSheetDialog.findViewById<LinearLayout>(R.id.today)
+        val thisWeek = bottomSheetDialog.findViewById<LinearLayout>(R.id.thisWeek)
+        val thisMonth = bottomSheetDialog.findViewById<LinearLayout>(R.id.thisMonth)
+        today?.setOnClickListener {
+            performFilterAction(FilterVariants.TODAY, bottomSheetDialog)
+        }
+        thisWeek?.setOnClickListener {
+            performFilterAction(FilterVariants.THIS_WEEK, bottomSheetDialog)
+        }
+        thisMonth?.setOnClickListener {
+            performFilterAction(FilterVariants.THIS_MONTH, bottomSheetDialog)
+        }
+        bottomSheetDialog.show()
+    }
+
     private fun performSortAction(sortBy: SortVariants, bottomSheetDialog: BottomSheetDialog) {
         currentSearchPage = defaultCurrentSearchPage
         newsAdapter.deleteNewsItems()
         savedSortByParameter = sortBy
         searchNews(savedQuery, savedSortByParameter.sortBy)
+        bottomSheetDialog.dismiss()
+        clearFocus()
+    }
+
+    private fun performFilterAction(
+        filterBy: FilterVariants,
+        bottomSheetDialog: BottomSheetDialog
+    ) {
+        val currentDate = LocalDateTime.now()
+        val filteredNews = newsAdapter.getNewsItems().stream()
+            .filter { newsItem ->
+                val date = LocalDateTime.parse(
+                    newsItem.publishedAt,
+                    DateTimeFormatter.ofPattern(StringPool.ISO_DATE_TIME.value)
+                )
+                when (filterBy) {
+                    FilterVariants.TODAY -> date.dayOfYear.compareTo(currentDate.dayOfYear) == NumberPool.ZERO.value
+                    FilterVariants.THIS_WEEK -> date.isBefore(currentDate) && date.isAfter(
+                        currentDate.minusWeeks(NumberPool.ONE.value.toLong())
+                    )
+                    FilterVariants.THIS_MONTH -> date.isBefore(currentDate) && date.isAfter(
+                        currentDate.minusMonths(NumberPool.ONE.value.toLong())
+                    )
+                }
+            }.collect(Collectors.toList())
+        newsAdapter.deleteNewsItems()
+        newsAdapter.addNewsItems(filteredNews as java.util.ArrayList<Article>)
         bottomSheetDialog.dismiss()
         clearFocus()
     }

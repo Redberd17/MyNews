@@ -7,7 +7,7 @@ import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.chugunova.mynews.R
-import com.chugunova.mynews.model.Articles
+import com.chugunova.mynews.model.Article
 import com.chugunova.mynews.utils.GlideApp
 import com.chugunova.mynews.utils.StringPool
 import java.time.LocalDateTime
@@ -19,10 +19,10 @@ import kotlinx.android.synthetic.main.news_item.view.publishedAt
 
 class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<NewsAdapter.ViewHolder>() {
 
-    private var newsItems = ArrayList<Articles>()
+    private var newsItems = ArrayList<Article>()
     private lateinit var context: Context
 
-    fun addNewsItems(newsItems: ArrayList<Articles>) {
+    fun addNewsItems(newsItems: ArrayList<Article>) {
         this.newsItems.addAll(newsItems)
         this.notifyDataSetChanged()
     }
@@ -32,7 +32,7 @@ class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<News
         this.notifyDataSetChanged()
     }
 
-    fun getNewsItems(): ArrayList<Articles> {
+    fun getNewsItems(): ArrayList<Article> {
         return newsItems
     }
 

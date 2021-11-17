@@ -10,6 +10,9 @@
     <string name="by_relevancy">By relevancy</string>
     <string name="by_popularity">By popularity</string>
     <string name="by_published_at">By published at</string>
+    <string name="today">Today</string>
+    <string name="this_week">This week</string>
+    <string name="this_month">This month</string>
     <string name="internet_error">Internet error</string>
     <string name="available_pages">availablePages</string>
     <string name="current_country_page">currentCountryPage</string>
