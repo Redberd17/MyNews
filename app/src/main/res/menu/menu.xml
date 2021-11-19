@@ -11,10 +11,15 @@
         android:id="@+id/sort"
         android:icon="@drawable/sort"
         android:title="@string/sort"
-        app:showAsAction="always" />
+        app:showAsAction="never" />
     <item
         android:id="@+id/filter"
         android:icon="@drawable/filter"
         android:title="@string/filter"
-        app:showAsAction="always" />
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/resetAll"
+        android:icon="@drawable/reset_all"
+        android:title="@string/reset_all"
+        app:showAsAction="never" />
 </menu>

@@ -40,16 +40,16 @@ class MainScreenFragment : Fragment() {
     private lateinit var showMoreButton: FloatingActionButton
     private lateinit var searchView: SearchView
 
-    private var availablePages: Int = 0
-    private var currentCountryPage: Int = 1
-    private var currentSearchPage: Int = 1
+    private var availablePages: Int = NumberPool.ZERO.value
+    private var currentCountryPage: Int = NumberPool.ONE.value
+    private var currentSearchPage: Int = NumberPool.ONE.value
     private var savedQuery: String = StringPool.EMPTY.value
     private var savedSortByParameter = SortVariants.PUBLISHED_AT
 
-    private val defaultCurrentSearchPage: Int = 1
-    private val scrollVerticallyDirection: Int = 1
-    private val rowNumber: Int = 2
-    private val itemsOnPage: Int = 20
+    private val defaultCurrentSearchPage: Int = NumberPool.ONE.value
+    private val scrollVerticallyDirection: Int = NumberPool.ONE.value
+    private val rowNumber: Int = NumberPool.TWO.value
+    private val itemsOnPage: Int = NumberPool.TWENTY.value
 
     companion object {
         fun newInstance() = MainScreenFragment()
@@ -123,6 +123,7 @@ class MainScreenFragment : Fragment() {
         val searchItem = menu.findItem(R.id.search)
         val sortItem = menu.findItem(R.id.sort)
         val filterItem = menu.findItem(R.id.filter)
+        val resetAllItem = menu.findItem(R.id.resetAll)
         searchView = searchItem?.actionView as SearchView
         searchView.setOnSearchClickListener {
             searchView.setQuery(savedQuery, false)
@@ -150,6 +151,10 @@ class MainScreenFragment : Fragment() {
         }
         filterItem.setOnMenuItemClickListener {
             showFilterDialog()
+            false
+        }
+        resetAllItem.setOnMenuItemClickListener {
+            resetAll()
             false
         }
     }
@@ -240,6 +245,15 @@ class MainScreenFragment : Fragment() {
         bottomSheetDialog.show()
     }
 
+    private fun resetAll() {
+        newsAdapter.deleteNewsItems()
+        currentCountryPage = NumberPool.ONE.value
+        currentSearchPage = NumberPool.ONE.value
+        savedSortByParameter = SortVariants.PUBLISHED_AT
+        savedQuery = StringPool.EMPTY.value
+        loadCountryNews()
+    }
+
     private fun performSortAction(sortBy: SortVariants, bottomSheetDialog: BottomSheetDialog) {
         currentSearchPage = defaultCurrentSearchPage
         newsAdapter.deleteNewsItems()
@@ -271,6 +285,7 @@ class MainScreenFragment : Fragment() {
                 }
             }.collect(Collectors.toList())
         newsAdapter.deleteNewsItems()
+        //TODO fix cast
         newsAdapter.addNewsItems(filteredNews as java.util.ArrayList<Article>)
         bottomSheetDialog.dismiss()
         clearFocus()
@@ -325,8 +340,19 @@ class MainScreenFragment : Fragment() {
                     if (response.isSuccessful) {
                         val newsResponse = response.body()
                         newsResponse?.let {
-                            recalculatePages(it)
-                            newsAdapter.addNewsItems(it.articles)
+                            if (newsResponse.articles.isEmpty()) {
+                                currentSearchPage = NumberPool.ONE.value
+                                Toast(context).apply {
+                                    setText(getString(R.string.no_content))
+                                    duration = Toast.LENGTH_LONG
+                                    show()
+                                }
+                            } else {
+                                newsResponse.let {
+                                    recalculatePages(it)
+                                    newsAdapter.addNewsItems(it.articles)
+                                }
+                            }
                             showMoreButton.visibility = View.GONE
                         }
                     }
