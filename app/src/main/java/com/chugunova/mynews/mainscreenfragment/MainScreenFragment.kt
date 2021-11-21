@@ -45,11 +45,15 @@ class MainScreenFragment : Fragment() {
     private var currentSearchPage: Int = NumberPool.ONE.value
     private var savedQuery: String = StringPool.EMPTY.value
     private var savedSortByParameter = SortVariants.PUBLISHED_AT
+    private var isSearch: Boolean = false
+    private lateinit var savedFilterParameter: FilterVariants
 
     private val defaultCurrentSearchPage: Int = NumberPool.ONE.value
     private val scrollVerticallyDirection: Int = NumberPool.ONE.value
     private val rowNumber: Int = NumberPool.TWO.value
-    private val itemsOnPage: Int = NumberPool.TWENTY.value
+    private val defaultItemsOnPage: Int = NumberPool.TWENTY.value
+    private val filteringItemsOnPage: Int = NumberPool.HUNDRED.value
+    private val maxAvailableNews: Int = NumberPool.HUNDRED.value
 
     companion object {
         fun newInstance() = MainScreenFragment()
@@ -102,7 +106,11 @@ class MainScreenFragment : Fragment() {
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                if (!recyclerView.canScrollVertically(scrollVerticallyDirection) && currentCountryPage <= availablePages) {
+                if (!recyclerView.canScrollVertically(scrollVerticallyDirection)
+                    && if (isSearch)
+                        currentSearchPage <= availablePages
+                    else currentCountryPage <= availablePages
+                ) {
                     showMoreButton.visibility = View.VISIBLE
                 } else {
                     showMoreButton.visibility = View.GONE
@@ -112,7 +120,9 @@ class MainScreenFragment : Fragment() {
         showMoreButton.setOnClickListener {
             if (savedQuery.isNotEmpty()) searchNews(
                 savedQuery,
-                savedSortByParameter.sortBy
+                defaultItemsOnPage,
+                savedSortByParameter.sortBy,
+                null
             ) else loadCountryNews()
         }
     }
@@ -133,7 +143,12 @@ class MainScreenFragment : Fragment() {
                 currentSearchPage = defaultCurrentSearchPage
                 query?.let { savedQuery = query }
                 newsAdapter.deleteNewsItems()
-                searchNews(query, savedSortByParameter.sortBy)
+                searchNews(
+                    query,
+                    defaultItemsOnPage,
+                    savedSortByParameter.sortBy,
+                    null
+                )
                 return false
             }
 
@@ -251,6 +266,7 @@ class MainScreenFragment : Fragment() {
         currentSearchPage = NumberPool.ONE.value
         savedSortByParameter = SortVariants.PUBLISHED_AT
         savedQuery = StringPool.EMPTY.value
+        isSearch = false
         loadCountryNews()
     }
 
@@ -258,7 +274,12 @@ class MainScreenFragment : Fragment() {
         currentSearchPage = defaultCurrentSearchPage
         newsAdapter.deleteNewsItems()
         savedSortByParameter = sortBy
-        searchNews(savedQuery, savedSortByParameter.sortBy)
+        searchNews(
+            savedQuery,
+            defaultItemsOnPage,
+            savedSortByParameter.sortBy,
+            null
+        )
         bottomSheetDialog.dismiss()
         clearFocus()
     }
@@ -267,8 +288,21 @@ class MainScreenFragment : Fragment() {
         filterBy: FilterVariants,
         bottomSheetDialog: BottomSheetDialog
     ) {
+        savedFilterParameter = filterBy
+        currentSearchPage = defaultCurrentSearchPage
+        searchNews(savedQuery, filteringItemsOnPage, savedSortByParameter.sortBy, ::filterNews)
+        newsAdapter.deleteNewsItems()
+        showMoreButton.visibility = View.GONE
+        bottomSheetDialog.dismiss()
+        clearFocus()
+    }
+
+    private fun filterNews(
+        newsItems: ArrayList<Article>,
+        filterBy: FilterVariants
+    ): ArrayList<Article> {
         val currentDate = LocalDateTime.now()
-        val filteredNews = newsAdapter.getNewsItems().stream()
+        val filteredNews = newsItems.stream()
             .filter { newsItem ->
                 val date = LocalDateTime.parse(
                     newsItem.publishedAt,
@@ -284,11 +318,7 @@ class MainScreenFragment : Fragment() {
                     )
                 }
             }.collect(Collectors.toList())
-        newsAdapter.deleteNewsItems()
-        //TODO fix cast
-        newsAdapter.addNewsItems(filteredNews as java.util.ArrayList<Article>)
-        bottomSheetDialog.dismiss()
-        clearFocus()
+        return filteredNews as java.util.ArrayList<Article>
     }
 
     private fun clearFocus() {
@@ -323,54 +353,66 @@ class MainScreenFragment : Fragment() {
         })
     }
 
-    private fun searchNews(query: String?, sortBy: String?) {
+    private fun searchNews(
+        query: String?,
+        pageSize: Int,
+        sortBy: String?,
+        filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?
+    ) {
+        isSearch = true
         query?.let {
             ConfigRetrofit.getEverythingNews(
                 it,
-                itemsOnPage,
+                pageSize,
                 currentSearchPage++,
                 sortBy
             )
-        }
-            ?.enqueue(object : Callback<NewsResponse> {
-                override fun onResponse(
-                    call: Call<NewsResponse>,
-                    response: Response<NewsResponse>
-                ) {
-                    if (response.isSuccessful) {
-                        val newsResponse = response.body()
-                        newsResponse?.let {
-                            if (newsResponse.articles.isEmpty()) {
-                                currentSearchPage = NumberPool.ONE.value
-                                Toast(context).apply {
-                                    setText(getString(R.string.no_content))
-                                    duration = Toast.LENGTH_LONG
-                                    show()
-                                }
-                            } else {
-                                newsResponse.let {
-                                    recalculatePages(it)
-                                    newsAdapter.addNewsItems(it.articles)
-                                }
+        }?.enqueue(object : Callback<NewsResponse> {
+            override fun onResponse(
+                call: Call<NewsResponse>,
+                response: Response<NewsResponse>
+            ) {
+                if (response.isSuccessful) {
+                    val newsResponse = response.body()
+                    newsResponse?.let {
+                        if (newsResponse.articles.isEmpty()) {
+                            currentSearchPage = NumberPool.ONE.value
+                            Toast(context).apply {
+                                setText(getString(R.string.no_content))
+                                duration = Toast.LENGTH_LONG
+                                show()
                             }
-                            showMoreButton.visibility = View.GONE
+                        } else {
+                            newsResponse.let {
+                                recalculatePages(it)
+                                newsAdapter.addNewsItems(
+                                    if (filterNews != null) filterNews(
+                                        it.articles,
+                                        savedFilterParameter
+                                    ) else it.articles
+                                )
+                            }
                         }
+                        showMoreButton.visibility = View.GONE
                     }
                 }
+            }
 
-                override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
-                    Toast(context).apply {
-                        setText(getString(R.string.internet_error))
-                        duration = Toast.LENGTH_LONG
-                        show()
-                    }
+            override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
+                Toast(context).apply {
+                    setText(getString(R.string.internet_error))
+                    duration = Toast.LENGTH_LONG
+                    show()
                 }
-            })
+            }
+        })
     }
 
     private fun recalculatePages(response: NewsResponse) {
-        val fullPages: Int = response.totalResults / itemsOnPage
-        val lost: Int = response.totalResults % itemsOnPage
+        val fullPages: Int =
+            if (response.totalResults > maxAvailableNews) maxAvailableNews / defaultItemsOnPage
+            else response.totalResults / defaultItemsOnPage
+        val lost: Int = response.totalResults % defaultItemsOnPage
         availablePages = fullPages + if (lost > 0) 1 else 0
     }
 }

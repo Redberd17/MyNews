@@ -1,22 +1,24 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto">
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools">
     <item
         android:id="@+id/search"
         android:icon="@android:drawable/ic_menu_search"
         android:title="@string/search"
         app:actionViewClass="androidx.appcompat.widget.SearchView"
-        app:showAsAction="ifRoom|collapseActionView" />
+        app:showAsAction="always|collapseActionView"
+        tools:ignore="AlwaysShowAction" />
     <item
         android:id="@+id/sort"
         android:icon="@drawable/sort"
-        android:title="@string/sort"
-        app:showAsAction="never" />
+        android:title="@string/sorting"
+        app:showAsAction="always" />
     <item
         android:id="@+id/filter"
         android:icon="@drawable/filter"
         android:title="@string/filter"
-        app:showAsAction="never" />
+        app:showAsAction="always" />
     <item
         android:id="@+id/resetAll"
         android:icon="@drawable/reset_all"

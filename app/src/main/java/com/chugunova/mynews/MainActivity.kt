@@ -7,6 +7,7 @@ import com.chugunova.mynews.mainscreenfragment.MainScreenFragment
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        supportActionBar?.setDisplayShowTitleEnabled(false);
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
         if (savedInstanceState == null) {

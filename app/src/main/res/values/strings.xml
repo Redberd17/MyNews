@@ -5,7 +5,7 @@
     <string name="main_screen_fragment">mainScreenFragment</string>
     <string name="show_more">Show more</string>
     <string name="search">Search</string>
-    <string name="sort">Sort</string>
+    <string name="sorting">Sorting</string>
     <string name="filter">Filter</string>
     <string name="reset_all">Reset</string>
     <string name="by_relevancy">By relevancy</string>
