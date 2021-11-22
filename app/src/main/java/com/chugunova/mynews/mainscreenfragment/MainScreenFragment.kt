@@ -19,6 +19,7 @@ import com.chugunova.mynews.fullscreenfragment.FullscreenFragment
 import com.chugunova.mynews.model.Article
 import com.chugunova.mynews.model.ArticlesWrapper
 import com.chugunova.mynews.model.NewsResponse
+import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.NumberPool
 import com.chugunova.mynews.utils.SortVariants
@@ -46,6 +47,7 @@ class MainScreenFragment : Fragment() {
     private var savedQuery: String = StringPool.EMPTY.value
     private var savedSortByParameter = SortVariants.PUBLISHED_AT
     private var isSearch: Boolean = false
+    private var isFilter: Boolean = false
     private lateinit var savedFilterParameter: FilterVariants
 
     private val defaultCurrentSearchPage: Int = NumberPool.ONE.value
@@ -64,23 +66,19 @@ class MainScreenFragment : Fragment() {
         setHasOptionsMenu(true)
         newsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
         savedInstanceState?.apply {
-            getSerializable(getString(R.string.news_items))?.let {
-                newsAdapter.addNewsItems((it as ArticlesWrapper).articles)
-            }
-            getInt(getString(R.string.available_pages)).let {
-                availablePages = it
-            }
-            getInt(getString(R.string.current_country_page)).let {
-                currentCountryPage = it
-            }
-            getInt(getString(R.string.current_search_page)).let {
-                currentSearchPage = it
-            }
-            getString(getString(R.string.saved_query))?.let {
-                savedQuery = it
-            }
-            getSerializable(getString(R.string.saved_sort_by_parameter))?.let {
-                savedSortByParameter = it as SortVariants
+            getSerializable(getString(R.string.saved_rotation_model))?.let { savedModel ->
+                savedModel as SavedRotationModel
+                newsAdapter.addNewsItems(savedModel.articles)
+                availablePages = savedModel.availablePages
+                currentCountryPage = savedModel.currentCountryPage
+                currentSearchPage = savedModel.currentSearchPage
+                savedQuery = savedModel.savedQuery
+                savedSortByParameter = savedModel.savedSortByParameter
+                isSearch = savedModel.isSearch
+                isFilter = savedModel.isFilter
+                savedModel.savedFilterParameter?.let {
+                    savedFilterParameter = it
+                }
             }
         }
     }
@@ -108,10 +106,11 @@ class MainScreenFragment : Fragment() {
                 super.onScrolled(recyclerView, dx, dy)
                 if (!recyclerView.canScrollVertically(scrollVerticallyDirection)
                     && if (isSearch)
-                        currentSearchPage <= availablePages
+                        currentSearchPage < availablePages
                     else currentCountryPage <= availablePages
                 ) {
-                    showMoreButton.visibility = View.VISIBLE
+                    if (!isFilter)
+                        showMoreButton.visibility = View.VISIBLE
                 } else {
                     showMoreButton.visibility = View.GONE
                 }
@@ -122,7 +121,8 @@ class MainScreenFragment : Fragment() {
                 savedQuery,
                 defaultItemsOnPage,
                 savedSortByParameter.sortBy,
-                null
+                null,
+                false
             ) else loadCountryNews()
         }
     }
@@ -147,7 +147,8 @@ class MainScreenFragment : Fragment() {
                     query,
                     defaultItemsOnPage,
                     savedSortByParameter.sortBy,
-                    null
+                    null,
+                    false
                 )
                 return false
             }
@@ -176,30 +177,21 @@ class MainScreenFragment : Fragment() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        val savedRotationModel = SavedRotationModel(
+            newsAdapter.getNewsItems(),
+            availablePages,
+            currentCountryPage,
+            currentSearchPage,
+            savedQuery,
+            savedSortByParameter,
+            isSearch,
+            isFilter,
+            if (::savedFilterParameter.isInitialized) savedFilterParameter else null
+        )
         outState.apply {
             putSerializable(
-                getString(R.string.news_items),
-                ArticlesWrapper(newsAdapter.getNewsItems())
-            )
-            putInt(
-                getString(R.string.available_pages),
-                availablePages
-            )
-            putInt(
-                getString(R.string.current_country_page),
-                currentCountryPage
-            )
-            putInt(
-                getString(R.string.current_search_page),
-                currentSearchPage
-            )
-            putString(
-                getString(R.string.saved_query),
-                savedQuery
-            )
-            putSerializable(
-                getString(R.string.saved_sort_by_parameter),
-                savedSortByParameter
+                getString(R.string.saved_rotation_model),
+                savedRotationModel
             )
         }
     }
@@ -267,6 +259,7 @@ class MainScreenFragment : Fragment() {
         savedSortByParameter = SortVariants.PUBLISHED_AT
         savedQuery = StringPool.EMPTY.value
         isSearch = false
+        isFilter = false
         loadCountryNews()
     }
 
@@ -278,7 +271,8 @@ class MainScreenFragment : Fragment() {
             savedQuery,
             defaultItemsOnPage,
             savedSortByParameter.sortBy,
-            null
+            null,
+            false
         )
         bottomSheetDialog.dismiss()
         clearFocus()
@@ -288,9 +282,16 @@ class MainScreenFragment : Fragment() {
         filterBy: FilterVariants,
         bottomSheetDialog: BottomSheetDialog
     ) {
+        isFilter = true
         savedFilterParameter = filterBy
         currentSearchPage = defaultCurrentSearchPage
-        searchNews(savedQuery, filteringItemsOnPage, savedSortByParameter.sortBy, ::filterNews)
+        searchNews(
+            savedQuery,
+            filteringItemsOnPage,
+            savedSortByParameter.sortBy,
+            ::filterNews,
+            true
+        )
         newsAdapter.deleteNewsItems()
         showMoreButton.visibility = View.GONE
         bottomSheetDialog.dismiss()
@@ -357,9 +358,12 @@ class MainScreenFragment : Fragment() {
         query: String?,
         pageSize: Int,
         sortBy: String?,
-        filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?
+        filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?,
+        isFilterAction: Boolean
     ) {
         isSearch = true
+        if (!isFilterAction)
+            isFilter = false
         query?.let {
             ConfigRetrofit.getEverythingNews(
                 it,

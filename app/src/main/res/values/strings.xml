@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">MyNews</string>
     <string name="news_items">newsItems</string>
+    <string name="saved_rotation_model">savedRotationModel</string>
     <string name="position">position</string>
     <string name="main_screen_fragment">mainScreenFragment</string>
     <string name="show_more">Show more</string>
