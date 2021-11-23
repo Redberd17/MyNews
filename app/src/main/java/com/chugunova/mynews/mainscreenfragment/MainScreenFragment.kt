@@ -12,6 +12,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.chugunova.mynews.R
 import com.chugunova.mynews.api.ConfigRetrofit
@@ -21,6 +22,7 @@ import com.chugunova.mynews.model.ArticlesWrapper
 import com.chugunova.mynews.model.NewsResponse
 import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.utils.FilterVariants
+import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.NumberPool
 import com.chugunova.mynews.utils.SortVariants
 import com.chugunova.mynews.utils.StringPool
@@ -48,6 +50,7 @@ class MainScreenFragment : Fragment() {
     private var savedSortByParameter = SortVariants.PUBLISHED_AT
     private var isSearch: Boolean = false
     private var isFilter: Boolean = false
+    private var currentLayoutVariant: LayoutVariants = LayoutVariants.AS_GRID
     private lateinit var savedFilterParameter: FilterVariants
 
     private val defaultCurrentSearchPage: Int = NumberPool.ONE.value
@@ -79,6 +82,7 @@ class MainScreenFragment : Fragment() {
                 savedModel.savedFilterParameter?.let {
                     savedFilterParameter = it
                 }
+                currentLayoutVariant = savedModel.currentLayoutVariant
             }
         }
     }
@@ -94,7 +98,7 @@ class MainScreenFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = view.findViewById(R.id.recyclerView)
         recyclerView.apply {
-            layoutManager = GridLayoutManager(context, rowNumber)
+            chooseLayoutManager()
             adapter = newsAdapter
         }
         showMoreButton = view.findViewById(R.id.showMoreButton)
@@ -133,6 +137,7 @@ class MainScreenFragment : Fragment() {
         val searchItem = menu.findItem(R.id.search)
         val sortItem = menu.findItem(R.id.sort)
         val filterItem = menu.findItem(R.id.filter)
+        val changeView = menu.findItem(R.id.changeView)
         val resetAllItem = menu.findItem(R.id.resetAll)
         searchView = searchItem?.actionView as SearchView
         searchView.setOnSearchClickListener {
@@ -169,6 +174,10 @@ class MainScreenFragment : Fragment() {
             showFilterDialog()
             false
         }
+        changeView.setOnMenuItemClickListener {
+            changeLayoutManager()
+            false
+        }
         resetAllItem.setOnMenuItemClickListener {
             resetAll()
             false
@@ -186,7 +195,8 @@ class MainScreenFragment : Fragment() {
             savedSortByParameter,
             isSearch,
             isFilter,
-            if (::savedFilterParameter.isInitialized) savedFilterParameter else null
+            if (::savedFilterParameter.isInitialized) savedFilterParameter else null,
+            currentLayoutVariant
         )
         outState.apply {
             putSerializable(
@@ -250,6 +260,36 @@ class MainScreenFragment : Fragment() {
             performFilterAction(FilterVariants.THIS_MONTH, bottomSheetDialog)
         }
         bottomSheetDialog.show()
+    }
+
+    private fun chooseLayoutManager() {
+        when (currentLayoutVariant) {
+            LayoutVariants.AS_GRID -> {
+                recyclerView.layoutManager = GridLayoutManager(context, rowNumber)
+            }
+            LayoutVariants.AS_LIST -> {
+                recyclerView.layoutManager = LinearLayoutManager(context)
+            }
+        }
+    }
+
+    private fun changeLayoutManager() {
+        when (currentLayoutVariant) {
+            LayoutVariants.AS_GRID -> {
+                currentLayoutVariant = LayoutVariants.AS_LIST
+                recyclerView.apply {
+                    layoutManager = LinearLayoutManager(context)
+                    adapter = newsAdapter
+                }
+            }
+            LayoutVariants.AS_LIST -> {
+                currentLayoutVariant = LayoutVariants.AS_GRID
+                recyclerView.apply {
+                    layoutManager = GridLayoutManager(context, rowNumber)
+                    adapter = newsAdapter
+                }
+            }
+        }
     }
 
     private fun resetAll() {

@@ -1,6 +1,7 @@
 package com.chugunova.mynews.model
 
 import com.chugunova.mynews.utils.FilterVariants
+import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.SortVariants
 import java.io.Serializable
 
@@ -13,5 +14,6 @@ data class SavedRotationModel(
     val savedSortByParameter: SortVariants,
     val isSearch: Boolean,
     val isFilter: Boolean,
-    val savedFilterParameter: FilterVariants?
+    val savedFilterParameter: FilterVariants?,
+    val currentLayoutVariant: LayoutVariants
 ) : Serializable

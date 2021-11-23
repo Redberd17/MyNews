@@ -20,6 +20,10 @@
         android:title="@string/filter"
         app:showAsAction="always" />
     <item
+        android:id="@+id/changeView"
+        android:title="@string/changeView"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/resetAll"
         android:icon="@drawable/reset_all"
         android:title="@string/reset_all"
