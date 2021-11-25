@@ -18,7 +18,6 @@ import com.chugunova.mynews.R
 import com.chugunova.mynews.api.ConfigRetrofit
 import com.chugunova.mynews.fullscreenfragment.FullscreenFragment
 import com.chugunova.mynews.model.Article
-import com.chugunova.mynews.model.ArticlesWrapper
 import com.chugunova.mynews.model.NewsResponse
 import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.utils.FilterVariants
@@ -42,6 +41,8 @@ class MainScreenFragment : Fragment() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var showMoreButton: FloatingActionButton
     private lateinit var searchView: SearchView
+    private lateinit var sortDialog: BottomSheetDialog
+    private lateinit var filterDialog: BottomSheetDialog
 
     private var availablePages: Int = NumberPool.ZERO.value
     private var currentCountryPage: Int = NumberPool.ONE.value
@@ -167,11 +168,19 @@ class MainScreenFragment : Fragment() {
             false
         }
         sortItem.setOnMenuItemClickListener {
-            showSortDialog()
+            if (isSearch) {
+                showSortDialog()
+            } else {
+                showToast(getString(R.string.sortUnavailable))
+            }
             false
         }
         filterItem.setOnMenuItemClickListener {
-            showFilterDialog()
+            if (isSearch) {
+                showFilterDialog()
+            } else {
+                showToast(getString(R.string.filterUnavailable))
+            }
             false
         }
         changeView.setOnMenuItemClickListener {
@@ -179,6 +188,8 @@ class MainScreenFragment : Fragment() {
             false
         }
         resetAllItem.setOnMenuItemClickListener {
+            searchView.setQuery(StringPool.EMPTY.value, false)
+            searchItem.collapseActionView()
             resetAll()
             false
         }
@@ -209,11 +220,10 @@ class MainScreenFragment : Fragment() {
     private fun showFullScreenNewsFragment(position: Int) {
         val activity = context as AppCompatActivity
         val bundle = Bundle().apply {
-            putSerializable(
-                getString(R.string.news_items),
-                ArticlesWrapper(newsAdapter.getNewsItems())
+            putString(
+                getString(R.string.news_url),
+                newsAdapter.getNewsItems()[position].url
             )
-            putInt(getString(R.string.position), position)
         }
         val mainScreenFragment =
             activity.supportFragmentManager.findFragmentByTag(getString(R.string.main_screen_fragment)) as MainScreenFragment
@@ -227,39 +237,129 @@ class MainScreenFragment : Fragment() {
     }
 
     private fun showSortDialog() {
-        val bottomSheetDialog = BottomSheetDialog(requireContext())
-        bottomSheetDialog.setContentView(R.layout.sort_bottom_sheet)
-        val relevancy = bottomSheetDialog.findViewById<LinearLayout>(R.id.relevancy)
-        val popularity = bottomSheetDialog.findViewById<LinearLayout>(R.id.popularity)
-        val publishedAt = bottomSheetDialog.findViewById<LinearLayout>(R.id.publishedAt)
+        if (::sortDialog.isInitialized) {
+            highlightSortAction(
+                sortDialog.findViewById(R.id.relevancy),
+                sortDialog.findViewById(R.id.popularity),
+                sortDialog.findViewById(R.id.publishedAt)
+            )
+            sortDialog.show()
+            return
+        }
+        sortDialog = BottomSheetDialog(requireContext())
+        sortDialog.setContentView(R.layout.sort_bottom_sheet)
+        val relevancy = sortDialog.findViewById<LinearLayout>(R.id.relevancy)
+        val popularity = sortDialog.findViewById<LinearLayout>(R.id.popularity)
+        val publishedAt = sortDialog.findViewById<LinearLayout>(R.id.publishedAt)
+        highlightSortAction(relevancy, popularity, publishedAt)
         relevancy?.setOnClickListener {
-            performSortAction(SortVariants.RELEVANCY, bottomSheetDialog)
+            performSortAction(SortVariants.RELEVANCY, sortDialog)
+            highlightSortAction(relevancy, popularity, publishedAt)
         }
         popularity?.setOnClickListener {
-            performSortAction(SortVariants.POPULARITY, bottomSheetDialog)
+            performSortAction(SortVariants.POPULARITY, sortDialog)
+            highlightSortAction(relevancy, popularity, publishedAt)
         }
         publishedAt?.setOnClickListener {
-            performSortAction(SortVariants.PUBLISHED_AT, bottomSheetDialog)
+            performSortAction(SortVariants.PUBLISHED_AT, sortDialog)
+            highlightSortAction(relevancy, popularity, publishedAt)
         }
-        bottomSheetDialog.show()
+        sortDialog.show()
+    }
+
+    private fun highlightSortAction(
+        relevancy: LinearLayout?,
+        popularity: LinearLayout?,
+        publishedAt: LinearLayout?
+    ) {
+        when (savedSortByParameter) {
+            SortVariants.RELEVANCY -> {
+                relevancy?.background = requireContext().getDrawable(R.color.colorAccent)
+                popularity?.background = requireContext().getDrawable(R.color.colorWhite)
+                publishedAt?.background = requireContext().getDrawable(R.color.colorWhite)
+            }
+            SortVariants.POPULARITY -> {
+                relevancy?.background = requireContext().getDrawable(R.color.colorWhite)
+                popularity?.background = requireContext().getDrawable(R.color.colorAccent)
+                publishedAt?.background = requireContext().getDrawable(R.color.colorWhite)
+            }
+            SortVariants.PUBLISHED_AT -> {
+                relevancy?.background = requireContext().getDrawable(R.color.colorWhite)
+                popularity?.background = requireContext().getDrawable(R.color.colorWhite)
+                publishedAt?.background = requireContext().getDrawable(R.color.colorAccent)
+            }
+        }
     }
 
     private fun showFilterDialog() {
-        val bottomSheetDialog = BottomSheetDialog(requireContext())
-        bottomSheetDialog.setContentView(R.layout.filter_bottom_sheet)
-        val today = bottomSheetDialog.findViewById<LinearLayout>(R.id.today)
-        val thisWeek = bottomSheetDialog.findViewById<LinearLayout>(R.id.thisWeek)
-        val thisMonth = bottomSheetDialog.findViewById<LinearLayout>(R.id.thisMonth)
+        if (::filterDialog.isInitialized) {
+            highlightFilterAction(
+                filterDialog.findViewById(R.id.today),
+                filterDialog.findViewById(R.id.thisWeek),
+                filterDialog.findViewById(R.id.thisMonth)
+            )
+            filterDialog.show()
+            return
+        }
+        filterDialog = BottomSheetDialog(requireContext())
+        filterDialog.setContentView(R.layout.filter_bottom_sheet)
+        val today = filterDialog.findViewById<LinearLayout>(R.id.today)
+        val thisWeek = filterDialog.findViewById<LinearLayout>(R.id.thisWeek)
+        val thisMonth = filterDialog.findViewById<LinearLayout>(R.id.thisMonth)
+        highlightFilterAction(today, thisWeek, thisMonth)
         today?.setOnClickListener {
-            performFilterAction(FilterVariants.TODAY, bottomSheetDialog)
+            performFilterAction(FilterVariants.TODAY, filterDialog)
+            highlightFilterAction(today, thisWeek, thisMonth)
         }
         thisWeek?.setOnClickListener {
-            performFilterAction(FilterVariants.THIS_WEEK, bottomSheetDialog)
+            performFilterAction(FilterVariants.THIS_WEEK, filterDialog)
+            highlightFilterAction(today, thisWeek, thisMonth)
         }
         thisMonth?.setOnClickListener {
-            performFilterAction(FilterVariants.THIS_MONTH, bottomSheetDialog)
+            performFilterAction(FilterVariants.THIS_MONTH, filterDialog)
+            highlightFilterAction(today, thisWeek, thisMonth)
         }
-        bottomSheetDialog.show()
+        filterDialog.show()
+    }
+
+    private fun highlightFilterAction(
+        today: LinearLayout?,
+        thisWeek: LinearLayout?,
+        thisMonth: LinearLayout?,
+    ) {
+        if (!::savedFilterParameter.isInitialized) {
+            return
+        }
+        when (savedFilterParameter) {
+            FilterVariants.TODAY -> {
+                today?.background = requireContext().getDrawable(R.color.colorAccent)
+                thisWeek?.background = requireContext().getDrawable(R.color.colorWhite)
+                thisMonth?.background = requireContext().getDrawable(R.color.colorWhite)
+            }
+            FilterVariants.THIS_WEEK -> {
+                today?.background = requireContext().getDrawable(R.color.colorWhite)
+                thisWeek?.background = requireContext().getDrawable(R.color.colorAccent)
+                thisMonth?.background = requireContext().getDrawable(R.color.colorWhite)
+            }
+            FilterVariants.THIS_MONTH -> {
+                today?.background = requireContext().getDrawable(R.color.colorWhite)
+                thisWeek?.background = requireContext().getDrawable(R.color.colorWhite)
+                thisMonth?.background = requireContext().getDrawable(R.color.colorAccent)
+            }
+            FilterVariants.DEFAULT -> {
+                today?.background = requireContext().getDrawable(R.color.colorWhite)
+                thisWeek?.background = requireContext().getDrawable(R.color.colorWhite)
+                thisMonth?.background = requireContext().getDrawable(R.color.colorWhite)
+            }
+        }
+    }
+
+    private fun showToast(text: String) {
+        Toast(context).apply {
+            duration = Toast.LENGTH_SHORT
+            setText(text)
+            show()
+        }
     }
 
     private fun chooseLayoutManager() {
@@ -297,6 +397,7 @@ class MainScreenFragment : Fragment() {
         currentCountryPage = NumberPool.ONE.value
         currentSearchPage = NumberPool.ONE.value
         savedSortByParameter = SortVariants.PUBLISHED_AT
+        savedFilterParameter = FilterVariants.DEFAULT
         savedQuery = StringPool.EMPTY.value
         isSearch = false
         isFilter = false
@@ -307,6 +408,7 @@ class MainScreenFragment : Fragment() {
         currentSearchPage = defaultCurrentSearchPage
         newsAdapter.deleteNewsItems()
         savedSortByParameter = sortBy
+        savedFilterParameter = FilterVariants.DEFAULT
         searchNews(
             savedQuery,
             defaultItemsOnPage,
@@ -357,9 +459,12 @@ class MainScreenFragment : Fragment() {
                     FilterVariants.THIS_MONTH -> date.isBefore(currentDate) && date.isAfter(
                         currentDate.minusMonths(NumberPool.ONE.value.toLong())
                     )
+                    FilterVariants.DEFAULT -> false
                 }
             }.collect(Collectors.toList())
-        return filteredNews as java.util.ArrayList<Article>
+        if (filteredNews.isEmpty())
+            showToast(getString(R.string.no_matching_results))
+        return filteredNews as ArrayList<Article>
     }
 
     private fun clearFocus() {
@@ -385,11 +490,7 @@ class MainScreenFragment : Fragment() {
             }
 
             override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
-                Toast(context).apply {
-                    setText(getString(R.string.internet_error))
-                    duration = Toast.LENGTH_LONG
-                    show()
-                }
+                showToast(getString(R.string.internet_error))
             }
         })
     }
@@ -421,11 +522,7 @@ class MainScreenFragment : Fragment() {
                     newsResponse?.let {
                         if (newsResponse.articles.isEmpty()) {
                             currentSearchPage = NumberPool.ONE.value
-                            Toast(context).apply {
-                                setText(getString(R.string.no_content))
-                                duration = Toast.LENGTH_LONG
-                                show()
-                            }
+                            showToast(getString(R.string.no_content))
                         } else {
                             newsResponse.let {
                                 recalculatePages(it)
@@ -443,11 +540,7 @@ class MainScreenFragment : Fragment() {
             }
 
             override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
-                Toast(context).apply {
-                    setText(getString(R.string.internet_error))
-                    duration = Toast.LENGTH_LONG
-                    show()
-                }
+                showToast(getString(R.string.internet_error))
             }
         })
     }

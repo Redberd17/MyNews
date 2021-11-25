@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">MyNews</string>
     <string name="news_items">newsItems</string>
+    <string name="news_url">newsUrl</string>
     <string name="saved_rotation_model">savedRotationModel</string>
     <string name="position">position</string>
     <string name="main_screen_fragment">mainScreenFragment</string>
@@ -25,4 +26,7 @@
     <string name="publishedAt">"Date: %1$s"</string>
     <string name="ISO_DATE_TIME">"yyyy-MM-dd'T'HH:mm:ss'Z'"</string>
     <string name="no_content">No content found</string>
+    <string name="no_matching_results">No matching results</string>
+    <string name="sortUnavailable">Sorting is unavailable for the default screen</string>
+    <string name="filterUnavailable">Filtering is unavailable for the default screen</string>
 </resources>
