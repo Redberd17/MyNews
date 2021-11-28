@@ -6,7 +6,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.widget.ProgressBar
 import androidx.fragment.app.Fragment
 import com.chugunova.mynews.R
 
@@ -14,6 +14,7 @@ import com.chugunova.mynews.R
 class FullscreenFragment : Fragment() {
 
     private lateinit var webView: WebView
+    private lateinit var progressBar: ProgressBar
 
     companion object {
         fun newInstance() = FullscreenFragment()
@@ -26,6 +27,7 @@ class FullscreenFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fullscreen_news_fragment, container, false)
         webView = view.findViewById(R.id.webView)
+        progressBar = view.findViewById(R.id.progressBar);
         webView.webViewClient = WebViewClient()
         return view
     }
@@ -38,6 +40,13 @@ class FullscreenFragment : Fragment() {
         webSettings.javaScriptEnabled = true
         url?.let {
             webView.loadUrl(it)
+        }
+    }
+
+    inner class WebViewClient : android.webkit.WebViewClient() {
+        override fun onPageFinished(view: WebView, url: String) {
+            super.onPageFinished(view, url)
+            progressBar.visibility = View.GONE
         }
     }
 }

@@ -7,6 +7,7 @@ import android.view.MenuInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.LinearLayout
+import android.widget.ProgressBar
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
@@ -34,7 +35,6 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 
-
 class MainScreenFragment : Fragment() {
 
     private lateinit var newsAdapter: NewsAdapter
@@ -43,6 +43,7 @@ class MainScreenFragment : Fragment() {
     private lateinit var searchView: SearchView
     private lateinit var sortDialog: BottomSheetDialog
     private lateinit var filterDialog: BottomSheetDialog
+    private lateinit var progressBar: ProgressBar
 
     private var availablePages: Int = NumberPool.ZERO.value
     private var currentCountryPage: Int = NumberPool.ONE.value
@@ -98,6 +99,7 @@ class MainScreenFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         recyclerView = view.findViewById(R.id.recyclerView)
+        progressBar = view.findViewById(R.id.mainProgressBar)
         recyclerView.apply {
             chooseLayoutManager()
             adapter = newsAdapter
@@ -473,12 +475,14 @@ class MainScreenFragment : Fragment() {
     }
 
     private fun loadCountryNews() {
+        showProgressBar()
         val news = ConfigRetrofit.getTopHeadlinesNews(StringPool.US.value, currentCountryPage++)
         news.enqueue(object : Callback<NewsResponse> {
             override fun onResponse(
                 call: Call<NewsResponse>,
                 response: Response<NewsResponse>
             ) {
+                hideProgressBar()
                 if (response.isSuccessful) {
                     val newsResponse = response.body()
                     newsResponse?.let {
@@ -490,6 +494,7 @@ class MainScreenFragment : Fragment() {
             }
 
             override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
+                hideProgressBar()
                 showToast(getString(R.string.internet_error))
             }
         })
@@ -502,6 +507,7 @@ class MainScreenFragment : Fragment() {
         filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?,
         isFilterAction: Boolean
     ) {
+        showProgressBar()
         isSearch = true
         if (!isFilterAction)
             isFilter = false
@@ -517,6 +523,7 @@ class MainScreenFragment : Fragment() {
                 call: Call<NewsResponse>,
                 response: Response<NewsResponse>
             ) {
+                hideProgressBar()
                 if (response.isSuccessful) {
                     val newsResponse = response.body()
                     newsResponse?.let {
@@ -540,9 +547,18 @@ class MainScreenFragment : Fragment() {
             }
 
             override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
+                hideProgressBar()
                 showToast(getString(R.string.internet_error))
             }
         })
+    }
+
+    private fun showProgressBar() {
+        progressBar.visibility = View.VISIBLE
+    }
+
+    private fun hideProgressBar() {
+        progressBar.visibility = View.GONE
     }
 
     private fun recalculatePages(response: NewsResponse) {
