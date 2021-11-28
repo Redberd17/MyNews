@@ -41,7 +41,7 @@ class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<News
             val news = newsItems[bindingAdapterPosition]
             GlideApp.with(itemView.context)
                 .load(news.urlToImage)
-                .error(R.drawable.ic_launcher_background)
+                .error(R.drawable.no_image)
                 .placeholder(R.drawable.spinner_ring)
                 .diskCacheStrategy(DiskCacheStrategy.ALL)
                 .dontTransform()

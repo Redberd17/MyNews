@@ -1,6 +1,7 @@
 package com.chugunova.mynews.mainscreenfragment
 
 import android.os.Bundle
+import android.util.TypedValue
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuInflater
@@ -9,6 +10,7 @@ import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.Toast
+import androidx.annotation.ColorInt
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
@@ -34,6 +36,7 @@ import java.util.stream.Collectors
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+
 
 class MainScreenFragment : Fragment() {
 
@@ -274,20 +277,24 @@ class MainScreenFragment : Fragment() {
         popularity: LinearLayout?,
         publishedAt: LinearLayout?
     ) {
+        val typedValue = TypedValue()
+        val theme = requireContext().theme
+        theme.resolveAttribute(R.attr.bottomSheetStyle, typedValue, true)
+        @ColorInt val color = typedValue.data
         when (savedSortByParameter) {
             SortVariants.RELEVANCY -> {
                 relevancy?.background = requireContext().getDrawable(R.color.colorAccent)
-                popularity?.background = requireContext().getDrawable(R.color.colorWhite)
-                publishedAt?.background = requireContext().getDrawable(R.color.colorWhite)
+                popularity?.setBackgroundColor(color)
+                publishedAt?.setBackgroundColor(color)
             }
             SortVariants.POPULARITY -> {
-                relevancy?.background = requireContext().getDrawable(R.color.colorWhite)
+                relevancy?.setBackgroundColor(color)
                 popularity?.background = requireContext().getDrawable(R.color.colorAccent)
-                publishedAt?.background = requireContext().getDrawable(R.color.colorWhite)
+                publishedAt?.setBackgroundColor(color)
             }
             SortVariants.PUBLISHED_AT -> {
-                relevancy?.background = requireContext().getDrawable(R.color.colorWhite)
-                popularity?.background = requireContext().getDrawable(R.color.colorWhite)
+                relevancy?.setBackgroundColor(color)
+                popularity?.setBackgroundColor(color)
                 publishedAt?.background = requireContext().getDrawable(R.color.colorAccent)
             }
         }
@@ -332,26 +339,30 @@ class MainScreenFragment : Fragment() {
         if (!::savedFilterParameter.isInitialized) {
             return
         }
+        val typedValue = TypedValue()
+        val theme = requireContext().theme
+        theme.resolveAttribute(R.attr.bottomSheetStyle, typedValue, true)
+        @ColorInt val color = typedValue.data
         when (savedFilterParameter) {
             FilterVariants.TODAY -> {
                 today?.background = requireContext().getDrawable(R.color.colorAccent)
-                thisWeek?.background = requireContext().getDrawable(R.color.colorWhite)
-                thisMonth?.background = requireContext().getDrawable(R.color.colorWhite)
+                thisWeek?.setBackgroundColor(color)
+                thisMonth?.setBackgroundColor(color)
             }
             FilterVariants.THIS_WEEK -> {
-                today?.background = requireContext().getDrawable(R.color.colorWhite)
+                today?.setBackgroundColor(color)
                 thisWeek?.background = requireContext().getDrawable(R.color.colorAccent)
-                thisMonth?.background = requireContext().getDrawable(R.color.colorWhite)
+                thisMonth?.setBackgroundColor(color)
             }
             FilterVariants.THIS_MONTH -> {
-                today?.background = requireContext().getDrawable(R.color.colorWhite)
-                thisWeek?.background = requireContext().getDrawable(R.color.colorWhite)
+                today?.setBackgroundColor(color)
+                thisWeek?.setBackgroundColor(color)
                 thisMonth?.background = requireContext().getDrawable(R.color.colorAccent)
             }
             FilterVariants.DEFAULT -> {
-                today?.background = requireContext().getDrawable(R.color.colorWhite)
-                thisWeek?.background = requireContext().getDrawable(R.color.colorWhite)
-                thisMonth?.background = requireContext().getDrawable(R.color.colorWhite)
+                today?.setBackgroundColor(color)
+                thisWeek?.setBackgroundColor(color)
+                thisMonth?.setBackgroundColor(color)
             }
         }
     }

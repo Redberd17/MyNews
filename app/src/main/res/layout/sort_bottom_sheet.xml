@@ -10,7 +10,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:text="@string/sorting"
-        android:textSize="20sp" />
+        android:textSize="25sp" />
 
     <View
         android:layout_width="match_parent"
@@ -34,12 +34,6 @@
             android:text="@string/by_relevancy" />
     </LinearLayout>
 
-    <View
-        android:layout_width="200dp"
-        android:layout_height="1dp"
-        android:layout_gravity="center"
-        android:background="@color/colorPrimaryDark" />
-
     <LinearLayout
         android:id="@+id/popularity"
         android:layout_width="match_parent"
@@ -56,12 +50,6 @@
             android:text="@string/by_popularity" />
 
     </LinearLayout>
-
-    <View
-        android:layout_width="200dp"
-        android:layout_height="1dp"
-        android:layout_gravity="center"
-        android:background="@color/colorPrimaryDark" />
 
     <LinearLayout
         android:id="@+id/publishedAt"
