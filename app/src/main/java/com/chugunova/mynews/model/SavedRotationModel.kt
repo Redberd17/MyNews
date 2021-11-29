@@ -1,12 +1,15 @@
 package com.chugunova.mynews.model
 
+import android.os.Parcelable
 import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.SortVariants
-import java.io.Serializable
+import kotlinx.android.parcel.Parcelize
+import kotlinx.android.parcel.RawValue
 
+@Parcelize
 data class SavedRotationModel(
-    val articles: ArrayList<Article>,
+    val articles: @RawValue ArrayList<Article>,
     val availablePages: Int,
     val currentCountryPage: Int,
     val currentSearchPage: Int,
@@ -16,4 +19,4 @@ data class SavedRotationModel(
     val isFilter: Boolean,
     val savedFilterParameter: FilterVariants?,
     val currentLayoutVariant: LayoutVariants
-) : Serializable
+) : Parcelable

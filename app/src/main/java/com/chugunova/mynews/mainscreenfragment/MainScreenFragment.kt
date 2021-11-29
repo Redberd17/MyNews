@@ -25,7 +25,6 @@ import com.chugunova.mynews.model.NewsResponse
 import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.LayoutVariants
-import com.chugunova.mynews.utils.NumberPool
 import com.chugunova.mynews.utils.SortVariants
 import com.chugunova.mynews.utils.StringPool
 import com.google.android.material.bottomsheet.BottomSheetDialog
@@ -48,25 +47,29 @@ class MainScreenFragment : Fragment() {
     private lateinit var filterDialog: BottomSheetDialog
     private lateinit var progressBar: ProgressBar
 
-    private var availablePages: Int = NumberPool.ZERO.value
-    private var currentCountryPage: Int = NumberPool.ONE.value
-    private var currentSearchPage: Int = NumberPool.ONE.value
-    private var savedQuery: String = StringPool.EMPTY.value
+    private var availablePages = zeroValue
+    private var currentCountryPage = oneValue
+    private var currentSearchPage = oneValue
+    private var savedQuery = StringPool.EMPTY.value
     private var savedSortByParameter = SortVariants.PUBLISHED_AT
-    private var isSearch: Boolean = false
-    private var isFilter: Boolean = false
-    private var currentLayoutVariant: LayoutVariants = LayoutVariants.AS_GRID
+    private var isSearch = false
+    private var isFilter = false
+    private var currentLayoutVariant = LayoutVariants.AS_GRID
     private lateinit var savedFilterParameter: FilterVariants
-
-    private val defaultCurrentSearchPage: Int = NumberPool.ONE.value
-    private val scrollVerticallyDirection: Int = NumberPool.ONE.value
-    private val rowNumber: Int = NumberPool.TWO.value
-    private val defaultItemsOnPage: Int = NumberPool.TWENTY.value
-    private val filteringItemsOnPage: Int = NumberPool.HUNDRED.value
-    private val maxAvailableNews: Int = NumberPool.HUNDRED.value
 
     companion object {
         fun newInstance() = MainScreenFragment()
+        private const val defaultCurrentSearchPage = 1
+        private const val scrollVerticallyDirection = 1
+        private const val rowNumber = 2
+        private const val defaultItemsOnPage = 20
+        private const val filteringItemsOnPage = 100
+        private const val maxAvailableNews = 100
+        private const val zeroValue = 0
+        private const val oneValue = 1
+        const val newsUrlString = "newsUrl"
+        const val savedRotationModelString = "savedRotationModel"
+        const val mainScreenFragmentString = "mainScreenFragment"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,8 +77,7 @@ class MainScreenFragment : Fragment() {
         setHasOptionsMenu(true)
         newsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
         savedInstanceState?.apply {
-            getSerializable(getString(R.string.saved_rotation_model))?.let { savedModel ->
-                savedModel as SavedRotationModel
+            getParcelable<SavedRotationModel>(savedRotationModelString)?.let { savedModel ->
                 newsAdapter.addNewsItems(savedModel.articles)
                 availablePages = savedModel.availablePages
                 currentCountryPage = savedModel.currentCountryPage
@@ -215,8 +217,8 @@ class MainScreenFragment : Fragment() {
             currentLayoutVariant
         )
         outState.apply {
-            putSerializable(
-                getString(R.string.saved_rotation_model),
+            putParcelable(
+                savedRotationModelString,
                 savedRotationModel
             )
         }
@@ -226,12 +228,12 @@ class MainScreenFragment : Fragment() {
         val activity = context as AppCompatActivity
         val bundle = Bundle().apply {
             putString(
-                getString(R.string.news_url),
+                newsUrlString,
                 newsAdapter.getNewsItems()[position].url
             )
         }
         val mainScreenFragment =
-            activity.supportFragmentManager.findFragmentByTag(getString(R.string.main_screen_fragment)) as MainScreenFragment
+            activity.supportFragmentManager.findFragmentByTag(mainScreenFragmentString) as MainScreenFragment
         activity.supportFragmentManager.beginTransaction().apply {
             replace(
                 mainScreenFragment.id,
@@ -407,8 +409,8 @@ class MainScreenFragment : Fragment() {
 
     private fun resetAll() {
         newsAdapter.deleteNewsItems()
-        currentCountryPage = NumberPool.ONE.value
-        currentSearchPage = NumberPool.ONE.value
+        currentCountryPage = oneValue
+        currentSearchPage = oneValue
         savedSortByParameter = SortVariants.PUBLISHED_AT
         savedFilterParameter = FilterVariants.DEFAULT
         savedQuery = StringPool.EMPTY.value
@@ -465,12 +467,12 @@ class MainScreenFragment : Fragment() {
                     DateTimeFormatter.ofPattern(StringPool.ISO_DATE_TIME.value)
                 )
                 when (filterBy) {
-                    FilterVariants.TODAY -> date.dayOfYear.compareTo(currentDate.dayOfYear) == NumberPool.ZERO.value
+                    FilterVariants.TODAY -> date.dayOfYear.compareTo(currentDate.dayOfYear) == zeroValue
                     FilterVariants.THIS_WEEK -> date.isBefore(currentDate) && date.isAfter(
-                        currentDate.minusWeeks(NumberPool.ONE.value.toLong())
+                        currentDate.minusWeeks(oneValue.toLong())
                     )
                     FilterVariants.THIS_MONTH -> date.isBefore(currentDate) && date.isAfter(
-                        currentDate.minusMonths(NumberPool.ONE.value.toLong())
+                        currentDate.minusMonths(oneValue.toLong())
                     )
                     FilterVariants.DEFAULT -> false
                 }
@@ -539,7 +541,7 @@ class MainScreenFragment : Fragment() {
                     val newsResponse = response.body()
                     newsResponse?.let {
                         if (newsResponse.articles.isEmpty()) {
-                            currentSearchPage = NumberPool.ONE.value
+                            currentSearchPage = oneValue
                             showToast(getString(R.string.no_content))
                         } else {
                             newsResponse.let {
@@ -565,7 +567,8 @@ class MainScreenFragment : Fragment() {
     }
 
     private fun showProgressBar() {
-        progressBar.visibility = View.VISIBLE
+        if (newsAdapter.getNewsItems().isEmpty())
+            progressBar.visibility = View.VISIBLE
     }
 
     private fun hideProgressBar() {

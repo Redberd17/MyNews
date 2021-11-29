@@ -78,12 +78,4 @@ class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<News
     override fun getItemCount(): Int {
         return newsItems.size
     }
-
-    override fun getItemId(position: Int): Long {
-        return position.toLong()
-    }
-
-    override fun getItemViewType(position: Int): Int {
-        return position
-    }
 }

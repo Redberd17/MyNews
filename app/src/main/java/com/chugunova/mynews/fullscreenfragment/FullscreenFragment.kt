@@ -9,6 +9,7 @@ import android.webkit.WebView
 import android.widget.ProgressBar
 import androidx.fragment.app.Fragment
 import com.chugunova.mynews.R
+import com.chugunova.mynews.mainscreenfragment.MainScreenFragment
 
 
 class FullscreenFragment : Fragment() {
@@ -35,7 +36,7 @@ class FullscreenFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val url = arguments?.getString(getString(R.string.news_url))
+        val url = arguments?.getString(MainScreenFragment.newsUrlString)
         val webSettings = webView.settings
         webSettings.javaScriptEnabled = true
         url?.let {
