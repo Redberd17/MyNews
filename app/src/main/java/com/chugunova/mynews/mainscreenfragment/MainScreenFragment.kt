@@ -56,6 +56,7 @@ class MainScreenFragment : Fragment() {
     private var isFilter = false
     private var currentLayoutVariant = LayoutVariants.AS_GRID
     private lateinit var savedFilterParameter: FilterVariants
+    private var articles = ArrayList<Article>()
 
     companion object {
         fun newInstance() = MainScreenFragment()
@@ -78,7 +79,8 @@ class MainScreenFragment : Fragment() {
         newsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
         savedInstanceState?.apply {
             getParcelable<SavedRotationModel>(savedRotationModelString)?.let { savedModel ->
-                newsAdapter.addNewsItems(savedModel.articles)
+                articles = savedModel.articles
+                newsAdapter.setNewsItems(articles)
                 availablePages = savedModel.availablePages
                 currentCountryPage = savedModel.currentCountryPage
                 currentSearchPage = savedModel.currentSearchPage
@@ -110,7 +112,7 @@ class MainScreenFragment : Fragment() {
             adapter = newsAdapter
         }
         showMoreButton = view.findViewById(R.id.showMoreButton)
-        if (newsAdapter.getNewsItems().isEmpty()) {
+        if (articles.isEmpty()) {
             loadCountryNews()
         }
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -155,7 +157,8 @@ class MainScreenFragment : Fragment() {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 currentSearchPage = defaultCurrentSearchPage
                 query?.let { savedQuery = query }
-                newsAdapter.deleteNewsItems()
+                articles.clear()
+                newsAdapter.setNewsItems(articles)
                 searchNews(
                     query,
                     defaultItemsOnPage,
@@ -205,7 +208,7 @@ class MainScreenFragment : Fragment() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         val savedRotationModel = SavedRotationModel(
-            newsAdapter.getNewsItems(),
+            articles,
             availablePages,
             currentCountryPage,
             currentSearchPage,
@@ -229,7 +232,7 @@ class MainScreenFragment : Fragment() {
         val bundle = Bundle().apply {
             putString(
                 newsUrlString,
-                newsAdapter.getNewsItems()[position].url
+                articles[position].url
             )
         }
         val mainScreenFragment =
@@ -408,7 +411,8 @@ class MainScreenFragment : Fragment() {
     }
 
     private fun resetAll() {
-        newsAdapter.deleteNewsItems()
+        articles.clear()
+        newsAdapter.setNewsItems(articles)
         currentCountryPage = oneValue
         currentSearchPage = oneValue
         savedSortByParameter = SortVariants.PUBLISHED_AT
@@ -421,7 +425,8 @@ class MainScreenFragment : Fragment() {
 
     private fun performSortAction(sortBy: SortVariants, bottomSheetDialog: BottomSheetDialog) {
         currentSearchPage = defaultCurrentSearchPage
-        newsAdapter.deleteNewsItems()
+        articles.clear()
+        newsAdapter.setNewsItems(articles)
         savedSortByParameter = sortBy
         savedFilterParameter = FilterVariants.DEFAULT
         searchNews(
@@ -449,7 +454,8 @@ class MainScreenFragment : Fragment() {
             ::filterNews,
             true
         )
-        newsAdapter.deleteNewsItems()
+        articles.clear()
+        newsAdapter.setNewsItems(articles)
         showMoreButton.visibility = View.GONE
         bottomSheetDialog.dismiss()
         clearFocus()
@@ -500,7 +506,9 @@ class MainScreenFragment : Fragment() {
                     val newsResponse = response.body()
                     newsResponse?.let {
                         recalculatePages(it)
-                        newsAdapter.addNewsItems(it.articles)
+                        articles.addAll(it.articles)
+                        if (it.articles.isNotEmpty())
+                            newsAdapter.setNewsItems(it.articles)
                         showMoreButton.visibility = View.GONE
                     }
                 }
@@ -546,12 +554,16 @@ class MainScreenFragment : Fragment() {
                         } else {
                             newsResponse.let {
                                 recalculatePages(it)
-                                newsAdapter.addNewsItems(
-                                    if (filterNews != null) filterNews(
-                                        it.articles,
-                                        savedFilterParameter
-                                    ) else it.articles
-                                )
+                                val newArticles =
+                                    if (filterNews != null)
+                                        filterNews(
+                                            it.articles,
+                                            savedFilterParameter
+                                        ) else
+                                        it.articles
+                                articles.addAll(newArticles)
+                                if (newArticles.isNotEmpty())
+                                    newsAdapter.setNewsItems(articles)
                             }
                         }
                         showMoreButton.visibility = View.GONE
@@ -567,7 +579,7 @@ class MainScreenFragment : Fragment() {
     }
 
     private fun showProgressBar() {
-        if (newsAdapter.getNewsItems().isEmpty())
+        if (articles.isEmpty())
             progressBar.visibility = View.VISIBLE
     }
 

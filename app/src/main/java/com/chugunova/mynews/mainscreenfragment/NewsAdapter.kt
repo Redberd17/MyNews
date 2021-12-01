@@ -22,18 +22,13 @@ class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<News
     private var newsItems = ArrayList<Article>()
     private lateinit var context: Context
 
-    fun addNewsItems(newsItems: ArrayList<Article>) {
-        this.newsItems.addAll(newsItems)
+    fun setNewsItems(newsItems: ArrayList<Article>) {
+        if (newsItems.isEmpty()) {
+            this.newsItems.clear()
+        } else {
+            this.newsItems.addAll(newsItems)
+        }
         this.notifyDataSetChanged()
-    }
-
-    fun deleteNewsItems() {
-        this.newsItems.clear()
-        this.notifyDataSetChanged()
-    }
-
-    fun getNewsItems(): ArrayList<Article> {
-        return newsItems
     }
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
