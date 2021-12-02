@@ -14,6 +14,7 @@ import androidx.annotation.ColorInt
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SearchView
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
@@ -32,10 +33,9 @@ import com.google.android.material.floatingactionbutton.FloatingActionButton
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
-
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class MainScreenFragment : Fragment() {
 
@@ -124,9 +124,9 @@ class MainScreenFragment : Fragment() {
                     else currentCountryPage <= availablePages
                 ) {
                     if (!isFilter)
-                        showMoreButton.visibility = View.VISIBLE
+                        showMoreButton()
                 } else {
-                    showMoreButton.visibility = View.GONE
+                    hideMoreButton()
                 }
             }
         })
@@ -456,7 +456,7 @@ class MainScreenFragment : Fragment() {
         )
         articles.clear()
         newsAdapter.setNewsItems(articles)
-        showMoreButton.visibility = View.GONE
+        hideMoreButton()
         bottomSheetDialog.dismiss()
         clearFocus()
     }
@@ -494,31 +494,26 @@ class MainScreenFragment : Fragment() {
     }
 
     private fun loadCountryNews() {
-        showProgressBar()
-        val news = ConfigRetrofit.getTopHeadlinesNews(StringPool.US.value, currentCountryPage++)
-        news.enqueue(object : Callback<NewsResponse> {
-            override fun onResponse(
-                call: Call<NewsResponse>,
-                response: Response<NewsResponse>
-            ) {
-                hideProgressBar()
-                if (response.isSuccessful) {
-                    val newsResponse = response.body()
-                    newsResponse?.let {
-                        recalculatePages(it)
-                        articles.addAll(it.articles)
-                        if (it.articles.isNotEmpty())
-                            newsAdapter.setNewsItems(it.articles)
-                        showMoreButton.visibility = View.GONE
-                    }
+        lifecycleScope.launch {
+            showProgressBar()
+            try {
+                val news = withContext(Dispatchers.IO) {
+                    ConfigRetrofit.getTopHeadlinesNews(StringPool.US.value, currentCountryPage++)
                 }
-            }
-
-            override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
-                hideProgressBar()
+                news.let {
+                    recalculatePages(it)
+                    articles.addAll(it.articles)
+                    if (it.articles.isNotEmpty())
+                        newsAdapter.setNewsItems(it.articles)
+                    hideMoreButton()
+                }
+            } catch (e: Throwable) {
+                println(e)
                 showToast(getString(R.string.internet_error))
+            } finally {
+                hideProgressBar()
             }
-        })
+        }
     }
 
     private fun searchNews(
@@ -528,54 +523,41 @@ class MainScreenFragment : Fragment() {
         filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?,
         isFilterAction: Boolean
     ) {
-        showProgressBar()
-        isSearch = true
-        if (!isFilterAction)
-            isFilter = false
-        query?.let {
-            ConfigRetrofit.getEverythingNews(
-                it,
-                pageSize,
-                currentSearchPage++,
-                sortBy
-            )
-        }?.enqueue(object : Callback<NewsResponse> {
-            override fun onResponse(
-                call: Call<NewsResponse>,
-                response: Response<NewsResponse>
-            ) {
-                hideProgressBar()
-                if (response.isSuccessful) {
-                    val newsResponse = response.body()
-                    newsResponse?.let {
-                        if (newsResponse.articles.isEmpty()) {
+        lifecycleScope.launch {
+            showProgressBar()
+            try {
+                isSearch = true
+                if (!isFilterAction)
+                    isFilter = false
+                query?.let {
+                    val news = withContext(Dispatchers.IO) {
+                        ConfigRetrofit.getEverythingNews(it, pageSize, currentSearchPage++, sortBy)
+                    }
+                    news.let {
+                        if (it.articles.isEmpty()) {
                             currentSearchPage = oneValue
                             showToast(getString(R.string.no_content))
                         } else {
-                            newsResponse.let {
-                                recalculatePages(it)
-                                val newArticles =
-                                    if (filterNews != null)
-                                        filterNews(
-                                            it.articles,
-                                            savedFilterParameter
-                                        ) else
-                                        it.articles
-                                articles.addAll(newArticles)
-                                if (newArticles.isNotEmpty())
-                                    newsAdapter.setNewsItems(articles)
-                            }
+                            recalculatePages(it)
+                            val newArticles =
+                                if (filterNews != null)
+                                    filterNews(it.articles, savedFilterParameter)
+                                else
+                                    it.articles
+                            articles.addAll(newArticles)
+                            if (newArticles.isNotEmpty())
+                                newsAdapter.setNewsItems(newArticles)
                         }
-                        showMoreButton.visibility = View.GONE
+                        hideMoreButton()
                     }
                 }
-            }
-
-            override fun onFailure(call: Call<NewsResponse>, t: Throwable) {
-                hideProgressBar()
+            } catch (e: Throwable) {
+                println(e)
                 showToast(getString(R.string.internet_error))
+            } finally {
+                hideProgressBar()
             }
-        })
+        }
     }
 
     private fun showProgressBar() {
@@ -585,6 +567,14 @@ class MainScreenFragment : Fragment() {
 
     private fun hideProgressBar() {
         progressBar.visibility = View.GONE
+    }
+
+    private fun showMoreButton() {
+        showMoreButton.visibility = View.VISIBLE
+    }
+
+    private fun hideMoreButton() {
+        showMoreButton.visibility = View.GONE
     }
 
     private fun recalculatePages(response: NewsResponse) {
