@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.chugunova.mynews.R
@@ -22,13 +23,12 @@ class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<News
     private var newsItems = ArrayList<Article>()
     private lateinit var context: Context
 
-    fun setNewsItems(newsItems: ArrayList<Article>) {
-        if (newsItems.isEmpty()) {
-            this.newsItems.clear()
-        } else {
-            this.newsItems.addAll(newsItems)
-        }
-        this.notifyDataSetChanged()
+    fun updateList(newArticles: ArrayList<Article>) {
+        val diffCallback = DiffCallback(newsItems, newArticles)
+        val diffResult = DiffUtil.calculateDiff(diffCallback)
+        newsItems.clear()
+        newsItems.addAll(newArticles)
+        diffResult.dispatchUpdatesTo(this)
     }
 
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
