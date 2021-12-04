@@ -193,7 +193,7 @@ class MainScreenFragment : Fragment() {
             if (isSearch) {
                 showSortDialog()
             } else {
-                showToast(getString(R.string.sortUnavailable))
+                showToast(R.string.sortUnavailable)
             }
             false
         }
@@ -201,7 +201,7 @@ class MainScreenFragment : Fragment() {
             if (isSearch) {
                 showFilterDialog()
             } else {
-                showToast(getString(R.string.filterUnavailable))
+                showToast(R.string.filterUnavailable)
             }
             false
         }
@@ -386,10 +386,8 @@ class MainScreenFragment : Fragment() {
         }
     }
 
-    private fun showToast(text: String) {
-        Toast(context).apply {
-            duration = Toast.LENGTH_SHORT
-            setText(text)
+    private fun showToast(text: Int) {
+        Toast.makeText(context, text, Toast.LENGTH_SHORT).apply {
             show()
         }
     }
@@ -505,7 +503,7 @@ class MainScreenFragment : Fragment() {
                 }
             }.collect(Collectors.toList())
         if (filteredNews.isEmpty())
-            showToast(getString(R.string.no_matching_results))
+            showToast(R.string.no_matching_results)
         return filteredNews as ArrayList<Article>
     }
 
@@ -529,7 +527,7 @@ class MainScreenFragment : Fragment() {
                 }
             } catch (e: Throwable) {
                 println(e)
-                showToast(getString(R.string.internet_error))
+                showToast(R.string.internet_error)
             } finally {
                 hideProgressBar()
             }
@@ -556,7 +554,7 @@ class MainScreenFragment : Fragment() {
                     news.let {
                         if (it.articles.isEmpty()) {
                             currentSearchPage = ONE
-                            showToast(getString(R.string.no_content))
+                            showToast(R.string.no_content)
                         } else {
                             recalculatePages(it)
                             val newArticles =
@@ -573,7 +571,7 @@ class MainScreenFragment : Fragment() {
                 }
             } catch (e: Throwable) {
                 println(e)
-                showToast(getString(R.string.internet_error))
+                showToast(R.string.internet_error)
             } finally {
                 hideProgressBar()
             }
