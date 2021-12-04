@@ -1,4 +1,4 @@
-package com.chugunova.mynews.model
+package com.chugunova.mynews.data.model
 
 data class NewsResponse(
     val status: String,

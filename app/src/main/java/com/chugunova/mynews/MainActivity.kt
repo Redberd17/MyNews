@@ -21,7 +21,7 @@ class MainActivity : AppCompatActivity() {
                 .replace(
                     R.id.container,
                     MainScreenFragment.newInstance(),
-                    MainScreenFragment.mainScreenFragmentString
+                    MainScreenFragment.MAIN_SCREEN_FRAGMENT_STRING
                 )
                 .commit()
         }

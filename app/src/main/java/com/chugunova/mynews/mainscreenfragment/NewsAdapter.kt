@@ -8,7 +8,7 @@ import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
 import com.bumptech.glide.load.engine.DiskCacheStrategy
 import com.chugunova.mynews.R
-import com.chugunova.mynews.model.Article
+import com.chugunova.mynews.data.model.Article
 import com.chugunova.mynews.utils.GlideApp
 import com.chugunova.mynews.utils.StringPool
 import java.time.LocalDateTime

@@ -36,7 +36,7 @@ class FullscreenFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val url = arguments?.getString(MainScreenFragment.newsUrlString)
+        val url = arguments?.getString(MainScreenFragment.NEWS_URL_STRING)
         val webSettings = webView.settings
         webSettings.javaScriptEnabled = true
         url?.let {

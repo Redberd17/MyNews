@@ -19,11 +19,13 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.chugunova.mynews.R
-import com.chugunova.mynews.api.ConfigRetrofit
+import com.chugunova.mynews.data.api.ApiHelper
+import com.chugunova.mynews.data.api.ConfigRetrofit
+import com.chugunova.mynews.data.model.Article
+import com.chugunova.mynews.data.model.NewsResponse
+import com.chugunova.mynews.data.model.SavedRotationModel
+import com.chugunova.mynews.data.repository.NewsRepository
 import com.chugunova.mynews.fullscreenfragment.FullscreenFragment
-import com.chugunova.mynews.model.Article
-import com.chugunova.mynews.model.NewsResponse
-import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.SortVariants
@@ -47,38 +49,41 @@ class MainScreenFragment : Fragment() {
     private lateinit var filterDialog: BottomSheetDialog
     private lateinit var progressBar: ProgressBar
 
-    private var availablePages = zeroValue
-    private var currentCountryPage = oneValue
-    private var currentSearchPage = oneValue
+    private lateinit var newsRepository: NewsRepository
+
+    private var availablePages = ZERO
+    private var currentCountryPage = ONE
+    private var currentSearchPage = ONE
     private var savedQuery = StringPool.EMPTY.value
     private var savedSortByParameter = SortVariants.PUBLISHED_AT
     private var isSearch = false
     private var isFilter = false
     private var currentLayoutVariant = LayoutVariants.AS_GRID
-    private lateinit var savedFilterParameter: FilterVariants
+    private var savedFilterParameter = FilterVariants.DEFAULT
     private var articles = ArrayList<Article>()
 
     companion object {
         fun newInstance() = MainScreenFragment()
-        private const val defaultCurrentSearchPage = 1
-        private const val scrollVerticallyDirection = 1
-        private const val rowNumber = 2
-        private const val defaultItemsOnPage = 20
-        private const val filteringItemsOnPage = 100
-        private const val maxAvailableNews = 100
-        private const val zeroValue = 0
-        private const val oneValue = 1
-        const val newsUrlString = "newsUrl"
-        const val savedRotationModelString = "savedRotationModel"
-        const val mainScreenFragmentString = "mainScreenFragment"
+        private const val DEFAULT_CURRENT_SEARCH_PAGE = 1
+        private const val SCROLL_VERTICALLY_DIRECTION = 1
+        private const val ROW_NUMBER = 2
+        private const val DEFAULT_ITEMS_ON_PAGE = 20
+        private const val FILTERING_ITEMS_ON_PAGE = 100
+        private const val MAX_AVAILABLE_NEWS = 100
+        private const val ZERO = 0
+        private const val ONE = 1
+        const val NEWS_URL_STRING = "newsUrl"
+        const val SAVED_ROTATION_MODEL_STRING = "savedRotationModel"
+        const val MAIN_SCREEN_FRAGMENT_STRING = "mainScreenFragment"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
+        newsRepository = NewsRepository(ApiHelper(ConfigRetrofit.apiService))
         newsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
         savedInstanceState?.apply {
-            getParcelable<SavedRotationModel>(savedRotationModelString)?.let { savedModel ->
+            getParcelable<SavedRotationModel>(SAVED_ROTATION_MODEL_STRING)?.let { savedModel ->
                 articles = savedModel.articles
                 newsAdapter.updateList(articles)
                 availablePages = savedModel.availablePages
@@ -118,7 +123,7 @@ class MainScreenFragment : Fragment() {
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
-                if (!recyclerView.canScrollVertically(scrollVerticallyDirection)
+                if (!recyclerView.canScrollVertically(SCROLL_VERTICALLY_DIRECTION)
                     && if (isSearch)
                         currentSearchPage < availablePages
                     else currentCountryPage <= availablePages
@@ -133,7 +138,7 @@ class MainScreenFragment : Fragment() {
         showMoreButton.setOnClickListener {
             if (savedQuery.isNotEmpty()) searchNews(
                 savedQuery,
-                defaultItemsOnPage,
+                DEFAULT_ITEMS_ON_PAGE,
                 savedSortByParameter.sortBy,
                 null,
                 false
@@ -155,16 +160,23 @@ class MainScreenFragment : Fragment() {
         }
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                currentSearchPage = defaultCurrentSearchPage
+                currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
                 query?.let { savedQuery = query }
                 articles.clear()
                 newsAdapter.updateList(articles)
+                val performFilter = savedFilterParameter != FilterVariants.DEFAULT
                 searchNews(
                     query,
-                    defaultItemsOnPage,
+                    if (performFilter)
+                        FILTERING_ITEMS_ON_PAGE
+                    else
+                        DEFAULT_ITEMS_ON_PAGE,
                     savedSortByParameter.sortBy,
-                    null,
-                    false
+                    if (performFilter)
+                        ::filterNews
+                    else
+                        null,
+                    performFilter
                 )
                 return false
             }
@@ -174,7 +186,7 @@ class MainScreenFragment : Fragment() {
             }
         })
         searchView.setOnCloseListener {
-            currentSearchPage = defaultCurrentSearchPage
+            currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
             false
         }
         sortItem.setOnMenuItemClickListener {
@@ -216,12 +228,12 @@ class MainScreenFragment : Fragment() {
             savedSortByParameter,
             isSearch,
             isFilter,
-            if (::savedFilterParameter.isInitialized) savedFilterParameter else null,
+            savedFilterParameter,
             currentLayoutVariant
         )
         outState.apply {
             putParcelable(
-                savedRotationModelString,
+                SAVED_ROTATION_MODEL_STRING,
                 savedRotationModel
             )
         }
@@ -231,12 +243,12 @@ class MainScreenFragment : Fragment() {
         val activity = context as AppCompatActivity
         val bundle = Bundle().apply {
             putString(
-                newsUrlString,
+                NEWS_URL_STRING,
                 articles[position].url
             )
         }
         val mainScreenFragment =
-            activity.supportFragmentManager.findFragmentByTag(mainScreenFragmentString) as MainScreenFragment
+            activity.supportFragmentManager.findFragmentByTag(MAIN_SCREEN_FRAGMENT_STRING) as MainScreenFragment
         activity.supportFragmentManager.beginTransaction().apply {
             replace(
                 mainScreenFragment.id,
@@ -320,6 +332,7 @@ class MainScreenFragment : Fragment() {
         val today = filterDialog.findViewById<LinearLayout>(R.id.today)
         val thisWeek = filterDialog.findViewById<LinearLayout>(R.id.thisWeek)
         val thisMonth = filterDialog.findViewById<LinearLayout>(R.id.thisMonth)
+        val reset = filterDialog.findViewById<LinearLayout>(R.id.resetFilter)
         highlightFilterAction(today, thisWeek, thisMonth)
         today?.setOnClickListener {
             performFilterAction(FilterVariants.TODAY, filterDialog)
@@ -333,6 +346,10 @@ class MainScreenFragment : Fragment() {
             performFilterAction(FilterVariants.THIS_MONTH, filterDialog)
             highlightFilterAction(today, thisWeek, thisMonth)
         }
+        reset?.setOnClickListener {
+            performFilterAction(FilterVariants.DEFAULT, filterDialog)
+            highlightFilterAction(today, thisWeek, thisMonth)
+        }
         filterDialog.show()
     }
 
@@ -341,9 +358,6 @@ class MainScreenFragment : Fragment() {
         thisWeek: LinearLayout?,
         thisMonth: LinearLayout?,
     ) {
-        if (!::savedFilterParameter.isInitialized) {
-            return
-        }
         val typedValue = TypedValue()
         val theme = requireContext().theme
         theme.resolveAttribute(R.attr.bottomSheetStyle, typedValue, true)
@@ -383,7 +397,7 @@ class MainScreenFragment : Fragment() {
     private fun chooseLayoutManager() {
         when (currentLayoutVariant) {
             LayoutVariants.AS_GRID -> {
-                recyclerView.layoutManager = GridLayoutManager(context, rowNumber)
+                recyclerView.layoutManager = GridLayoutManager(context, ROW_NUMBER)
             }
             LayoutVariants.AS_LIST -> {
                 recyclerView.layoutManager = LinearLayoutManager(context)
@@ -403,7 +417,7 @@ class MainScreenFragment : Fragment() {
             LayoutVariants.AS_LIST -> {
                 currentLayoutVariant = LayoutVariants.AS_GRID
                 recyclerView.apply {
-                    layoutManager = GridLayoutManager(context, rowNumber)
+                    layoutManager = GridLayoutManager(context, ROW_NUMBER)
                     adapter = newsAdapter
                 }
             }
@@ -413,8 +427,8 @@ class MainScreenFragment : Fragment() {
     private fun resetAll() {
         articles.clear()
         newsAdapter.updateList(articles)
-        currentCountryPage = oneValue
-        currentSearchPage = oneValue
+        currentCountryPage = ONE
+        currentSearchPage = ONE
         savedSortByParameter = SortVariants.PUBLISHED_AT
         savedFilterParameter = FilterVariants.DEFAULT
         savedQuery = StringPool.EMPTY.value
@@ -424,14 +438,14 @@ class MainScreenFragment : Fragment() {
     }
 
     private fun performSortAction(sortBy: SortVariants, bottomSheetDialog: BottomSheetDialog) {
-        currentSearchPage = defaultCurrentSearchPage
+        currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
         articles.clear()
         newsAdapter.updateList(articles)
         savedSortByParameter = sortBy
         savedFilterParameter = FilterVariants.DEFAULT
         searchNews(
             savedQuery,
-            defaultItemsOnPage,
+            DEFAULT_ITEMS_ON_PAGE,
             savedSortByParameter.sortBy,
             null,
             false
@@ -446,13 +460,20 @@ class MainScreenFragment : Fragment() {
     ) {
         isFilter = true
         savedFilterParameter = filterBy
-        currentSearchPage = defaultCurrentSearchPage
+        currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
+        val doFilter = filterBy != FilterVariants.DEFAULT
         searchNews(
             savedQuery,
-            filteringItemsOnPage,
+            if (doFilter)
+                FILTERING_ITEMS_ON_PAGE
+            else
+                DEFAULT_ITEMS_ON_PAGE,
             savedSortByParameter.sortBy,
-            ::filterNews,
-            true
+            if (doFilter)
+                ::filterNews
+            else
+                null,
+            doFilter
         )
         articles.clear()
         newsAdapter.updateList(articles)
@@ -473,12 +494,12 @@ class MainScreenFragment : Fragment() {
                     DateTimeFormatter.ofPattern(StringPool.ISO_DATE_TIME.value)
                 )
                 when (filterBy) {
-                    FilterVariants.TODAY -> date.dayOfYear.compareTo(currentDate.dayOfYear) == zeroValue
+                    FilterVariants.TODAY -> date.dayOfYear.compareTo(currentDate.dayOfYear) == ZERO
                     FilterVariants.THIS_WEEK -> date.isBefore(currentDate) && date.isAfter(
-                        currentDate.minusWeeks(oneValue.toLong())
+                        currentDate.minusWeeks(ONE.toLong())
                     )
                     FilterVariants.THIS_MONTH -> date.isBefore(currentDate) && date.isAfter(
-                        currentDate.minusMonths(oneValue.toLong())
+                        currentDate.minusMonths(ONE.toLong())
                     )
                     FilterVariants.DEFAULT -> false
                 }
@@ -498,7 +519,7 @@ class MainScreenFragment : Fragment() {
             showProgressBar()
             try {
                 val news = withContext(Dispatchers.IO) {
-                    ConfigRetrofit.getTopHeadlinesNews(StringPool.US.value, currentCountryPage++)
+                    newsRepository.getTopHeadlinesNews(StringPool.US.value, currentCountryPage++)
                 }
                 news.let {
                     recalculatePages(it)
@@ -530,11 +551,11 @@ class MainScreenFragment : Fragment() {
                     isFilter = false
                 query?.let {
                     val news = withContext(Dispatchers.IO) {
-                        ConfigRetrofit.getEverythingNews(it, pageSize, currentSearchPage++, sortBy)
+                        newsRepository.getEverythingNews(it, pageSize, currentSearchPage++, sortBy)
                     }
                     news.let {
                         if (it.articles.isEmpty()) {
-                            currentSearchPage = oneValue
+                            currentSearchPage = ONE
                             showToast(getString(R.string.no_content))
                         } else {
                             recalculatePages(it)
@@ -560,7 +581,10 @@ class MainScreenFragment : Fragment() {
     }
 
     private fun showProgressBar() {
-        if (isSearch || articles.isEmpty())
+        if (isSearch && articles.isEmpty() ||
+            !isSearch && articles.isEmpty() ||
+            isFilter && articles.isNotEmpty()
+        )
             progressBar.visibility = View.VISIBLE
     }
 
@@ -578,9 +602,9 @@ class MainScreenFragment : Fragment() {
 
     private fun recalculatePages(response: NewsResponse) {
         val fullPages: Int =
-            if (response.totalResults > maxAvailableNews) maxAvailableNews / defaultItemsOnPage
-            else response.totalResults / defaultItemsOnPage
-        val lost: Int = response.totalResults % defaultItemsOnPage
+            if (response.totalResults > MAX_AVAILABLE_NEWS) MAX_AVAILABLE_NEWS / DEFAULT_ITEMS_ON_PAGE
+            else response.totalResults / DEFAULT_ITEMS_ON_PAGE
+        val lost: Int = response.totalResults % DEFAULT_ITEMS_ON_PAGE
         availablePages = fullPages + if (lost > 0) 1 else 0
     }
 }

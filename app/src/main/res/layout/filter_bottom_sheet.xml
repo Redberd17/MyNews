@@ -67,4 +67,21 @@
             android:text="@string/this_month" />
 
     </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/resetFilter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="?android:attr/selectableItemBackground"
+        android:gravity="center"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:padding="15sp"
+            android:text="@string/resetFilter" />
+
+    </LinearLayout>
 </LinearLayout>

@@ -1,4 +1,4 @@
-package com.chugunova.mynews.model
+package com.chugunova.mynews.data.model
 
 import android.os.Parcelable
 import kotlinx.android.parcel.Parcelize
