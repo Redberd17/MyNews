@@ -2,7 +2,7 @@ package com.chugunova.mynews.data.api
 
 import com.chugunova.mynews.data.model.NewsResponse
 
-private const val API_KEY: String = "a4c6d91742e74962957312c56c72e861"
+private const val API_KEY: String = "122c312bd35846c3bc567d40c992cb42"
 
 class ApiHelper(private val apiService: ApiService) {
 

@@ -387,8 +387,10 @@ class MainScreenFragment : Fragment() {
     }
 
     private fun showToast(text: Int) {
-        Toast.makeText(context, text, Toast.LENGTH_SHORT).apply {
-            show()
+        context?.let {
+            Toast.makeText(it, text, Toast.LENGTH_SHORT).apply {
+                show()
+            }
         }
     }
 
@@ -549,13 +551,14 @@ class MainScreenFragment : Fragment() {
                     isFilter = false
                 query?.let {
                     val news = withContext(Dispatchers.IO) {
-                        newsRepository.getEverythingNews(it, pageSize, currentSearchPage++, sortBy)
+                        newsRepository.getEverythingNews(it, pageSize, currentSearchPage, sortBy)
                     }
                     news.let {
                         if (it.articles.isEmpty()) {
                             currentSearchPage = ONE
                             showToast(R.string.no_content)
                         } else {
+                            currentSearchPage++
                             recalculatePages(it)
                             val newArticles =
                                 if (filterNews != null)
