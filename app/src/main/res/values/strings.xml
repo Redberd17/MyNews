@@ -12,8 +12,8 @@
     <string name="by_popularity">By popularity</string>
     <string name="by_published_at">By published at</string>
     <string name="today">Today</string>
-    <string name="this_week">This week</string>
-    <string name="this_month">This month</string>
+    <string name="this_week">Week</string>
+    <string name="this_month">Month</string>
     <string name="resetFilter">Reset</string>
     <string name="internet_error">Internet error</string>
     <string name="publishedAt">"Date: %1$s"</string>
@@ -21,4 +21,5 @@
     <string name="no_matching_results">No matching results</string>
     <string name="sortUnavailable">Sorting is unavailable for the default screen</string>
     <string name="filterUnavailable">Filtering is unavailable for the default screen</string>
+    <string name="waiter">waiter</string>
 </resources>

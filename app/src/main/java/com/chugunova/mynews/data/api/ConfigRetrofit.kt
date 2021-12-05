@@ -14,8 +14,8 @@ object ConfigRetrofit {
     private fun configureRetrofit(): ApiService {
         if (retrofit == null) {
             val okHttpClient = OkHttpClient.Builder()
-                .readTimeout(2, TimeUnit.SECONDS)
-                .connectTimeout(2, TimeUnit.SECONDS)
+                .readTimeout(3, TimeUnit.SECONDS)
+                .connectTimeout(3, TimeUnit.SECONDS)
                 .build()
             retrofit = Retrofit.Builder()
                 .baseUrl(BASE_URL)

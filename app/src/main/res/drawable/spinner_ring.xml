@@ -9,8 +9,8 @@
         android:thicknessRatio="5.333"
         android:useLevel="false">
         <size
-            android:height="40dp"
-            android:width="40dp" />
+            android:width="40dp"
+            android:height="40dp" />
 
         <gradient
             android:centerColor="#886688cc"
