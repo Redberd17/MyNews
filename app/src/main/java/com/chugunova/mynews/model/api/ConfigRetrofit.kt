@@ -1,4 +1,4 @@
-package com.chugunova.mynews.data.api
+package com.chugunova.mynews.model.api
 
 import java.util.concurrent.TimeUnit
 import okhttp3.OkHttpClient
@@ -7,11 +7,11 @@ import retrofit2.converter.gson.GsonConverterFactory
 
 object ConfigRetrofit {
 
-    private var retrofit: ApiService? = null
+    private var retrofit: NewsApiService? = null
 
     private const val BASE_URL: String = "https://newsapi.org/v2/"
 
-    private fun configureRetrofit(): ApiService {
+    private fun configureRetrofit(): NewsApiService {
         if (retrofit == null) {
             val okHttpClient = OkHttpClient.Builder()
                 .readTimeout(3, TimeUnit.SECONDS)
@@ -22,10 +22,10 @@ object ConfigRetrofit {
                 .client(okHttpClient)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build()
-                .create(ApiService::class.java)
+                .create(NewsApiService::class.java)
         }
         return retrofit!!
     }
 
-    val apiService: ApiService = configureRetrofit()
+    val apiService: NewsApiService = configureRetrofit()
 }

@@ -1,7 +1,7 @@
 package com.chugunova.mynews.mainscreenfragment
 
 import androidx.recyclerview.widget.DiffUtil
-import com.chugunova.mynews.data.model.Article
+import com.chugunova.mynews.model.Article
 
 class DiffCallback(
     private var oldArticles: ArrayList<Article>,

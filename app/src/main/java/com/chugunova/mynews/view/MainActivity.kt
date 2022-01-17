@@ -1,9 +1,9 @@
-package com.chugunova.mynews
+package com.chugunova.mynews.view
 
 import android.content.res.Configuration
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
-import com.chugunova.mynews.mainscreenfragment.MainScreenFragment
+import com.chugunova.mynews.R
 
 class MainActivity : AppCompatActivity() {
 
@@ -20,8 +20,8 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.beginTransaction()
                 .replace(
                     R.id.container,
-                    MainScreenFragment.newInstance(),
-                    MainScreenFragment.MAIN_SCREEN_FRAGMENT_STRING
+                    NewsAllFragment.newInstance(),
+                    NewsAllFragment.MAIN_SCREEN_FRAGMENT_STRING
                 )
                 .commit()
         }

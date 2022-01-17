@@ -1,4 +1,4 @@
-package com.chugunova.mynews.fullscreenfragment
+package com.chugunova.mynews.view
 
 import android.annotation.SuppressLint
 import android.os.Bundle
@@ -13,16 +13,15 @@ import android.webkit.WebView
 import android.widget.ProgressBar
 import androidx.fragment.app.Fragment
 import com.chugunova.mynews.R
-import com.chugunova.mynews.mainscreenfragment.MainScreenFragment
 
 
-class FullscreenFragment : Fragment() {
+class NewsDetailFragment : Fragment() {
 
     private lateinit var webView: WebView
     private lateinit var menuProgressBar: MenuItem
 
     companion object {
-        fun newInstance() = FullscreenFragment()
+        fun newInstance() = NewsDetailFragment()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -44,7 +43,7 @@ class FullscreenFragment : Fragment() {
     @SuppressLint("SetJavaScriptEnabled")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        val url = arguments?.getString(MainScreenFragment.NEWS_URL_STRING)
+        val url = arguments?.getString(NewsAllFragment.NEWS_URL_STRING)
         val webSettings = webView.settings
         webSettings.javaScriptEnabled = true
         webSettings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW;
@@ -56,7 +55,6 @@ class FullscreenFragment : Fragment() {
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateOptionsMenu(menu, inflater)
         super.onCreateOptionsMenu(menu, inflater)
         inflater.inflate(R.menu.menu2, menu)
         menuProgressBar = menu.findItem(R.id.waiter)

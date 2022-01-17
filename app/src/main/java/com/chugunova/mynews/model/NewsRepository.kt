@@ -1,7 +1,6 @@
-package com.chugunova.mynews.data.repository
+package com.chugunova.mynews.model
 
-import com.chugunova.mynews.data.api.ApiHelper
-import com.chugunova.mynews.data.model.NewsResponse
+import com.chugunova.mynews.model.api.ApiHelper
 
 class NewsRepository(private val apiHelper: ApiHelper) {
 

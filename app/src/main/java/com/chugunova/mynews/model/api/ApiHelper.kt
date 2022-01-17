@@ -1,10 +1,10 @@
-package com.chugunova.mynews.data.api
+package com.chugunova.mynews.model.api
 
-import com.chugunova.mynews.data.model.NewsResponse
+import com.chugunova.mynews.model.NewsResponse
 
 private const val API_KEY: String = "122c312bd35846c3bc567d40c992cb42"
 
-class ApiHelper(private val apiService: ApiService) {
+class ApiHelper(private val apiService: NewsApiService) {
 
     suspend fun getEverythingNews(
         q: String,

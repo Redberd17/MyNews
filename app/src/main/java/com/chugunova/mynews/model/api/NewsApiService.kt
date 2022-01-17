@@ -1,10 +1,10 @@
-package com.chugunova.mynews.data.api
+package com.chugunova.mynews.model.api
 
-import com.chugunova.mynews.data.model.NewsResponse
+import com.chugunova.mynews.model.NewsResponse
 import retrofit2.http.GET
 import retrofit2.http.Query
 
-interface ApiService {
+interface NewsApiService {
 
     @GET("top-headlines")
     suspend fun getTopHeadlinesNews(
