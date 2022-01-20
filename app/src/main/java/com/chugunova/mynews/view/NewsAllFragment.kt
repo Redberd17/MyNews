@@ -1,5 +1,6 @@
 package com.chugunova.mynews.view
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -23,10 +24,9 @@ import com.chugunova.mynews.R
 import com.chugunova.mynews.mainscreenfragment.NewsAdapter
 import com.chugunova.mynews.model.Article
 import com.chugunova.mynews.model.NewsRepository
+import com.chugunova.mynews.model.NewsRepository.Companion.availablePages
 import com.chugunova.mynews.model.NewsResponse
 import com.chugunova.mynews.model.SavedRotationModel
-import com.chugunova.mynews.model.api.ApiHelper
-import com.chugunova.mynews.model.api.ConfigRetrofit
 import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.SortVariants
@@ -35,12 +35,12 @@ import com.chugunova.mynews.viewmodel.NewsAllFragmentFactory
 import com.chugunova.mynews.viewmodel.NewsAllFragmentViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
-import java.util.stream.Collectors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
+import java.util.stream.Collectors
 
 class NewsAllFragment : Fragment() {
 
@@ -58,7 +58,6 @@ class NewsAllFragment : Fragment() {
 
     private var savedRotationModel: SavedRotationModel = SavedRotationModel(
         arrayListOf(),
-        0,
         1,
         1,
         savedQuery = StringPool.EMPTY.value,
@@ -80,21 +79,21 @@ class NewsAllFragment : Fragment() {
         private const val ZERO = 0
         private const val ONE = 1
         const val NEWS_URL_STRING = "newsUrl"
-        const val SAVED_ROTATION_MODEL_STRING = "savedRotationModel"
         const val MAIN_SCREEN_FRAGMENT_STRING = "mainScreenFragment"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
-        newsRepository = NewsRepository(ApiHelper(ConfigRetrofit.apiService))
+
         newsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
-        //создание
-        //        var database: ArticleDatabase? =
-        //            context?.let { Room.databaseBuilder(it, ArticleDatabase::class.java, "database").build() }
 
+        //get instance of database - NOT HERE (get in view model)
+//        newsRepository = NewsRepository(
+//                ApiHelper(ConfigRetrofit.apiService),
+//                context?.let { ArticleDataSourceImpl.getInstance(it) })
 
-        //получаем из провайдера view model
+        //get view model from provider
         mNewsAllFragmentViewModel = ViewModelProvider(
             this,
             NewsAllFragmentFactory(
@@ -106,7 +105,6 @@ class NewsAllFragment : Fragment() {
         mNewsAllFragmentViewModel.liveData.observe(this, {
             newsAdapter.updateList(it.articles)
             savedRotationModel.articles = it.articles
-            savedRotationModel.availablePages = it.availablePages
             savedRotationModel.currentCountryPage = it.currentCountryPage
             savedRotationModel.currentSearchPage = it.currentSearchPage
             savedRotationModel.savedQuery = it.savedQuery
@@ -137,11 +135,6 @@ class NewsAllFragment : Fragment() {
             adapter = newsAdapter
         }
 
-
-        //        mNewsAllFragmentViewModel.liveData.value?.let {
-        //            articles = it.articles
-        //        }
-
         if (savedRotationModel.articles.isEmpty()) {
             showProgressBar()
             hideMoreButton()
@@ -149,25 +142,13 @@ class NewsAllFragment : Fragment() {
 
         }
 
-
-        //        mNewsAllFragmentViewModel.liveData.value?.let {
-        //            availablePages = it.availablePages
-        //            currentCountryPage = it.currentCountryPage
-        //            currentSearchPage = it.currentSearchPage
-        //            isSearch = it.isSearch
-        //            isFilter = it.isFilter
-        //            savedQuery = it.savedQuery
-        //            savedSortByParameter = it.savedSortByParameter
-        //        }
-
-
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 if (!recyclerView.canScrollVertically(SCROLL_VERTICALLY_DIRECTION)
                     && if (savedRotationModel.isSearch)
-                        savedRotationModel.currentSearchPage < savedRotationModel.availablePages
-                    else savedRotationModel.currentCountryPage < savedRotationModel.availablePages
+                        savedRotationModel.currentSearchPage < availablePages
+                    else savedRotationModel.currentCountryPage < availablePages
                 ) {
                     if (!savedRotationModel.isFilter)
                         showMoreButton()
@@ -260,16 +241,6 @@ class NewsAllFragment : Fragment() {
             searchItem.collapseActionView()
             resetAll()
             false
-        }
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.apply {
-            putParcelable(
-                SAVED_ROTATION_MODEL_STRING,
-                savedRotationModel
-            )
         }
     }
 
@@ -623,6 +594,6 @@ class NewsAllFragment : Fragment() {
             if (response.totalResults > MAX_AVAILABLE_NEWS) MAX_AVAILABLE_NEWS / DEFAULT_ITEMS_ON_PAGE
             else response.totalResults / DEFAULT_ITEMS_ON_PAGE
         val lost: Int = response.totalResults % DEFAULT_ITEMS_ON_PAGE
-        savedRotationModel.availablePages = fullPages + if (lost > 0) 1 else 0
+        availablePages = fullPages + if (lost > 0) 1 else 0
     }
 }

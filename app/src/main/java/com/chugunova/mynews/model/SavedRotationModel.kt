@@ -10,7 +10,6 @@ import kotlinx.android.parcel.RawValue
 @Parcelize
 data class SavedRotationModel(
     var articles: @RawValue ArrayList<Article>,
-    var availablePages: Int,
     var currentCountryPage: Int,
     var currentSearchPage: Int,
     var savedQuery: String,

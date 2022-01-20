@@ -10,12 +10,12 @@ import kotlinx.android.parcel.Parcelize
 data class Article(
     @PrimaryKey val id: Long?,
     var typeOfQuery: String?, //can be "us", "apple", "sony" and more
-    val source: Source,
-    val author: String,
+//    @Ignore val source: Source,
+    val author: String?,
     val title: String,
-    val description: String,
+    val description: String?,
     val url: String,
-    val urlToImage: String,
+    val urlToImage: String?,
     var publishedAt: String,
-    val content: String
+    val content: String?
 ) : Parcelable

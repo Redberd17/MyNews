@@ -4,8 +4,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
+import com.chugunova.mynews.dao.ArticleDatabase
 import com.chugunova.mynews.model.NewsRepository
-import com.chugunova.mynews.model.NewsResponse
 import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.model.api.ApiHelper
 import com.chugunova.mynews.model.api.ConfigRetrofit
@@ -16,32 +16,30 @@ import com.chugunova.mynews.utils.StringPool
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.net.InetSocketAddress
+import java.net.Socket
+import java.net.SocketAddress
 
-class NewsAllFragmentViewModel(
-    application: Application
-) :
-    AndroidViewModel(application) {
+class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(application) {
 
     val liveData = MutableLiveData<SavedRotationModel>()
 
-    private val newsRepository = NewsRepository(ApiHelper(ConfigRetrofit.apiService))
-    private var savedRotationModel = SavedRotationModel(
-        arrayListOf(),
-        0,
-        0,
-        0,
-        savedQuery = StringPool.EMPTY.value,
-        isSearch = false,
-        isFilter = false,
-        SortVariants.PUBLISHED_AT,
-        FilterVariants.DEFAULT,
-        LayoutVariants.AS_GRID
-    )
+    private val newsRepository = NewsRepository(
+            ApiHelper(ConfigRetrofit.apiService),
+            ArticleDatabase.getInstance(getApplication()).articleDao())
 
-    companion object {
-        private const val DEFAULT_ITEMS_ON_PAGE = 20
-        private const val MAX_AVAILABLE_NEWS = 100
-    }
+    private var savedRotationModel = SavedRotationModel(
+            arrayListOf(),
+            0,
+            0,
+            savedQuery = StringPool.EMPTY.value,
+            isSearch = false,
+            isFilter = false,
+            SortVariants.PUBLISHED_AT,
+            FilterVariants.DEFAULT,
+            LayoutVariants.AS_GRID
+    )
 
     fun loadCountryNews() {
         viewModelScope.launch {
@@ -49,18 +47,14 @@ class NewsAllFragmentViewModel(
                 savedRotationModel.currentCountryPage++
                 val news = withContext(Dispatchers.IO) {
                     newsRepository.getTopHeadlinesNews(
-                        StringPool.US.value,
-                        savedRotationModel.currentCountryPage
+                            StringPool.US.value,
+                            savedRotationModel.currentCountryPage,
+                            isOnline()
                     )
                 }
 
                 news.let {
-                    recalculatePages(it)
-                    for (article in it.articles) {
-                        article.typeOfQuery = "us"
-                    }
-
-                    savedRotationModel.articles.addAll(it.articles)
+                    savedRotationModel.articles.addAll(it)
                     liveData.postValue(savedRotationModel)
                 }
 
@@ -71,12 +65,16 @@ class NewsAllFragmentViewModel(
         }
     }
 
-    private fun recalculatePages(response: NewsResponse) {
-        val fullPages: Int =
-            if (response.totalResults > MAX_AVAILABLE_NEWS) MAX_AVAILABLE_NEWS / DEFAULT_ITEMS_ON_PAGE
-            else response.totalResults / DEFAULT_ITEMS_ON_PAGE
-        val lost: Int = response.totalResults % DEFAULT_ITEMS_ON_PAGE
-        savedRotationModel.availablePages = fullPages + if (lost > 0) 1 else 0
+    private fun isOnline(): Boolean {
+        return try {
+            val timeoutMs = 1500
+            val sock = Socket()
+            val socked: SocketAddress = InetSocketAddress("8.8.8.8", 53)
+            sock.connect(socked, timeoutMs)
+            sock.close()
+            true
+        } catch (e: IOException) {
+            false
+        }
     }
-
 }
