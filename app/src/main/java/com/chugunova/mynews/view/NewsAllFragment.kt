@@ -29,6 +29,7 @@ import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.SortVariants
 import com.chugunova.mynews.utils.StringPool
+import com.chugunova.mynews.viewmodel.NewsAllFragmentFactory
 import com.chugunova.mynews.viewmodel.NewsAllFragmentViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -53,7 +54,7 @@ class NewsAllFragment : Fragment() {
 
     private val newsAdapter: NewsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
 
-    private lateinit var articles: ArrayList<Article>
+    private var articles: ArrayList<Article> = arrayListOf()
 
     private var currentCountryPage: Int = 0
     private var currentSearchPage: Int = 0
@@ -82,7 +83,9 @@ class NewsAllFragment : Fragment() {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
         //get view model from provider
-        mNewsAllFragmentViewModel = ViewModelProvider(this)[NewsAllFragmentViewModel::class.java]
+        mNewsAllFragmentViewModel = ViewModelProvider(this,
+                NewsAllFragmentFactory(requireActivity().application)
+        )[NewsAllFragmentViewModel::class.java]
     }
 
     override fun onCreateView(
@@ -96,8 +99,8 @@ class NewsAllFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
 
         mNewsAllFragmentViewModel.articlesLiveData.observe(viewLifecycleOwner, {
-            newsAdapter.updateList(it)
-            articles = it
+            articles.addAll(it)
+            newsAdapter.updateList(articles)
         })
 
         mNewsAllFragmentViewModel.liveData.observe(viewLifecycleOwner, {
