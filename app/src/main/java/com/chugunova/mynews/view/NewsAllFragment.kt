@@ -1,6 +1,5 @@
 package com.chugunova.mynews.view
 
-import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.TypedValue
 import android.view.LayoutInflater
@@ -26,12 +25,10 @@ import com.chugunova.mynews.model.Article
 import com.chugunova.mynews.model.NewsRepository
 import com.chugunova.mynews.model.NewsRepository.Companion.availablePages
 import com.chugunova.mynews.model.NewsResponse
-import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.SortVariants
 import com.chugunova.mynews.utils.StringPool
-import com.chugunova.mynews.viewmodel.NewsAllFragmentFactory
 import com.chugunova.mynews.viewmodel.NewsAllFragmentViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
@@ -45,8 +42,6 @@ import java.util.stream.Collectors
 class NewsAllFragment : Fragment() {
 
     private lateinit var mNewsAllFragmentViewModel: NewsAllFragmentViewModel
-
-    private lateinit var newsAdapter: NewsAdapter
     private lateinit var recyclerView: RecyclerView
     private lateinit var showMoreButton: FloatingActionButton
     private lateinit var searchView: SearchView
@@ -56,17 +51,18 @@ class NewsAllFragment : Fragment() {
 
     private lateinit var newsRepository: NewsRepository
 
-    private var savedRotationModel: SavedRotationModel = SavedRotationModel(
-        arrayListOf(),
-        1,
-        1,
-        savedQuery = StringPool.EMPTY.value,
-        isSearch = false,
-        isFilter = false,
-        SortVariants.PUBLISHED_AT,
-        FilterVariants.DEFAULT,
-        LayoutVariants.AS_GRID
-    )
+    private val newsAdapter: NewsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
+
+    private lateinit var articles: ArrayList<Article>
+
+    private var currentCountryPage: Int = 0
+    private var currentSearchPage: Int = 0
+    private var savedQuery: String = ""
+    private var isSearch: Boolean = false
+    private var isFilter: Boolean = false
+    private var savedSortByParameter = SortVariants.PUBLISHED_AT
+    private var savedFilterParameter = FilterVariants.DEFAULT
+    private var currentLayoutVariant = LayoutVariants.AS_GRID
 
     companion object {
         fun newInstance() = NewsAllFragment()
@@ -85,47 +81,37 @@ class NewsAllFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
-
-        newsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
-
-        //get instance of database - NOT HERE (get in view model)
-//        newsRepository = NewsRepository(
-//                ApiHelper(ConfigRetrofit.apiService),
-//                context?.let { ArticleDataSourceImpl.getInstance(it) })
-
         //get view model from provider
-        mNewsAllFragmentViewModel = ViewModelProvider(
-            this,
-            NewsAllFragmentFactory(
-                requireActivity().application,
-                savedRotationModel
-            )
-        )[NewsAllFragmentViewModel::class.java]
-
-        mNewsAllFragmentViewModel.liveData.observe(this, {
-            newsAdapter.updateList(it.articles)
-            savedRotationModel.articles = it.articles
-            savedRotationModel.currentCountryPage = it.currentCountryPage
-            savedRotationModel.currentSearchPage = it.currentSearchPage
-            savedRotationModel.savedQuery = it.savedQuery
-            savedRotationModel.isSearch = it.isSearch
-            savedRotationModel.isFilter = it.isFilter
-            savedRotationModel.savedSortByParameter = it.savedSortByParameter
-            savedRotationModel.savedFilterParameter = it.savedFilterParameter
-            savedRotationModel.currentLayoutVariant = it.currentLayoutVariant
-            hideProgressBar()
-        })
+        mNewsAllFragmentViewModel = ViewModelProvider(this)[NewsAllFragmentViewModel::class.java]
     }
 
     override fun onCreateView(
-        inflater: LayoutInflater, container: ViewGroup?,
-        savedInstanceState: Bundle?
+            inflater: LayoutInflater, container: ViewGroup?,
+            savedInstanceState: Bundle?
     ): View {
         return inflater.inflate(R.layout.main_fragment, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        mNewsAllFragmentViewModel.articlesLiveData.observe(viewLifecycleOwner, {
+            newsAdapter.updateList(it)
+            articles = it
+        })
+
+        mNewsAllFragmentViewModel.liveData.observe(viewLifecycleOwner, {
+            currentCountryPage = it.currentCountryPage
+            currentSearchPage = it.currentSearchPage
+            savedQuery = it.savedQuery
+            isSearch = it.isSearch
+            isFilter = it.isFilter
+            savedSortByParameter = it.savedSortByParameter
+            savedFilterParameter = it.savedFilterParameter
+            currentLayoutVariant = it.currentLayoutVariant
+            hideProgressBar()
+        })
+
         recyclerView = view.findViewById(R.id.recyclerView)
         showMoreButton = view.findViewById(R.id.showMoreButton)
         progressBar = view.findViewById(R.id.mainProgressBar)
@@ -135,22 +121,21 @@ class NewsAllFragment : Fragment() {
             adapter = newsAdapter
         }
 
-        if (savedRotationModel.articles.isEmpty()) {
+        if (articles.isEmpty()) {
             showProgressBar()
             hideMoreButton()
             mNewsAllFragmentViewModel.loadCountryNews()
-
         }
 
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 if (!recyclerView.canScrollVertically(SCROLL_VERTICALLY_DIRECTION)
-                    && if (savedRotationModel.isSearch)
-                        savedRotationModel.currentSearchPage < availablePages
-                    else savedRotationModel.currentCountryPage < availablePages
+                        && if (isSearch)
+                            currentSearchPage < availablePages
+                        else currentCountryPage < availablePages
                 ) {
-                    if (!savedRotationModel.isFilter)
+                    if (!isFilter)
                         showMoreButton()
                 } else {
                     hideMoreButton()
@@ -159,12 +144,12 @@ class NewsAllFragment : Fragment() {
         })
 
         showMoreButton.setOnClickListener {
-            if (savedRotationModel.savedQuery.isNotEmpty()) searchNews(
-                savedRotationModel.savedQuery,
-                DEFAULT_ITEMS_ON_PAGE,
-                savedRotationModel.savedSortByParameter.sortBy,
-                null,
-                false
+            if (savedQuery.isNotEmpty()) searchNews(
+                    savedQuery,
+                    DEFAULT_ITEMS_ON_PAGE,
+                    savedSortByParameter.sortBy,
+                    null,
+                    false
             ) else {
                 hideMoreButton()
                 mNewsAllFragmentViewModel.loadCountryNews()
@@ -182,28 +167,28 @@ class NewsAllFragment : Fragment() {
         val resetAllItem = menu.findItem(R.id.resetAll)
         searchView = searchItem?.actionView as SearchView
         searchView.setOnSearchClickListener {
-            searchView.setQuery(savedRotationModel.savedQuery, false)
+            searchView.setQuery(savedQuery, false)
         }
         searchView.setOnQueryTextListener(object : SearchView.OnQueryTextListener {
             override fun onQueryTextSubmit(query: String?): Boolean {
-                savedRotationModel.currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
-                query?.let { savedRotationModel.savedQuery = query }
-                savedRotationModel.articles.clear()
-                newsAdapter.updateList(savedRotationModel.articles)
+                currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
+                query?.let { savedQuery = query }
+                articles.clear()
+                newsAdapter.updateList(articles)
                 val performFilter =
-                    savedRotationModel.savedFilterParameter != FilterVariants.DEFAULT
+                        savedFilterParameter != FilterVariants.DEFAULT
                 searchNews(
-                    query,
-                    if (performFilter)
-                        FILTERING_ITEMS_ON_PAGE
-                    else
-                        DEFAULT_ITEMS_ON_PAGE,
-                    savedRotationModel.savedSortByParameter.sortBy,
-                    if (performFilter)
-                        ::filterNews
-                    else
-                        null,
-                    performFilter
+                        query,
+                        if (performFilter)
+                            FILTERING_ITEMS_ON_PAGE
+                        else
+                            DEFAULT_ITEMS_ON_PAGE,
+                        savedSortByParameter.sortBy,
+                        if (performFilter)
+                            ::filterNews
+                        else
+                            null,
+                        performFilter
                 )
                 return false
             }
@@ -213,11 +198,11 @@ class NewsAllFragment : Fragment() {
             }
         })
         searchView.setOnCloseListener {
-            savedRotationModel.currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
+            currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
             false
         }
         sortItem.setOnMenuItemClickListener {
-            if (savedRotationModel.isSearch) {
+            if (isSearch) {
                 showSortDialog()
             } else {
                 showToast(R.string.sortUnavailable)
@@ -225,7 +210,7 @@ class NewsAllFragment : Fragment() {
             false
         }
         filterItem.setOnMenuItemClickListener {
-            if (savedRotationModel.isSearch) {
+            if (isSearch) {
                 showFilterDialog()
             } else {
                 showToast(R.string.filterUnavailable)
@@ -248,16 +233,16 @@ class NewsAllFragment : Fragment() {
         val activity = context as AppCompatActivity
         val bundle = Bundle().apply {
             putString(
-                NEWS_URL_STRING,
-                savedRotationModel.articles[position].url
+                    NEWS_URL_STRING,
+                    articles[position].url
             )
         }
         val newAllFragment =
-            activity.supportFragmentManager.findFragmentByTag(MAIN_SCREEN_FRAGMENT_STRING) as NewsAllFragment
+                activity.supportFragmentManager.findFragmentByTag(MAIN_SCREEN_FRAGMENT_STRING) as NewsAllFragment
         activity.supportFragmentManager.beginTransaction().apply {
             replace(
-                newAllFragment.id,
-                NewsDetailFragment.newInstance().apply { arguments = bundle })
+                    newAllFragment.id,
+                    NewsDetailFragment.newInstance().apply { arguments = bundle })
             addToBackStack(null)
             commit()
         }
@@ -266,9 +251,9 @@ class NewsAllFragment : Fragment() {
     private fun showSortDialog() {
         if (::sortDialog.isInitialized) {
             highlightSortAction(
-                sortDialog.findViewById(R.id.relevancy),
-                sortDialog.findViewById(R.id.popularity),
-                sortDialog.findViewById(R.id.publishedAt)
+                    sortDialog.findViewById(R.id.relevancy),
+                    sortDialog.findViewById(R.id.popularity),
+                    sortDialog.findViewById(R.id.publishedAt)
             )
             sortDialog.show()
             return
@@ -295,15 +280,15 @@ class NewsAllFragment : Fragment() {
     }
 
     private fun highlightSortAction(
-        relevancy: LinearLayout?,
-        popularity: LinearLayout?,
-        publishedAt: LinearLayout?
+            relevancy: LinearLayout?,
+            popularity: LinearLayout?,
+            publishedAt: LinearLayout?
     ) {
         val typedValue = TypedValue()
         val theme = requireContext().theme
         theme.resolveAttribute(R.attr.bottomSheetStyle, typedValue, true)
         @ColorInt val color = typedValue.data
-        when (savedRotationModel.savedSortByParameter) {
+        when (savedSortByParameter) {
             SortVariants.RELEVANCY -> {
                 relevancy?.background = requireContext().getDrawable(R.color.colorAccent)
                 popularity?.setBackgroundColor(color)
@@ -325,9 +310,9 @@ class NewsAllFragment : Fragment() {
     private fun showFilterDialog() {
         if (::filterDialog.isInitialized) {
             highlightFilterAction(
-                filterDialog.findViewById(R.id.today),
-                filterDialog.findViewById(R.id.thisWeek),
-                filterDialog.findViewById(R.id.thisMonth)
+                    filterDialog.findViewById(R.id.today),
+                    filterDialog.findViewById(R.id.thisWeek),
+                    filterDialog.findViewById(R.id.thisMonth)
             )
             filterDialog.show()
             return
@@ -359,15 +344,15 @@ class NewsAllFragment : Fragment() {
     }
 
     private fun highlightFilterAction(
-        today: LinearLayout?,
-        thisWeek: LinearLayout?,
-        thisMonth: LinearLayout?,
+            today: LinearLayout?,
+            thisWeek: LinearLayout?,
+            thisMonth: LinearLayout?,
     ) {
         val typedValue = TypedValue()
         val theme = requireContext().theme
         theme.resolveAttribute(R.attr.bottomSheetStyle, typedValue, true)
         @ColorInt val color = typedValue.data
-        when (savedRotationModel.savedFilterParameter) {
+        when (savedFilterParameter) {
             FilterVariants.TODAY -> {
                 today?.background = requireContext().getDrawable(R.color.colorAccent)
                 thisWeek?.setBackgroundColor(color)
@@ -400,7 +385,7 @@ class NewsAllFragment : Fragment() {
     }
 
     private fun chooseLayoutManager() {
-        when (savedRotationModel.currentLayoutVariant) {
+        when (currentLayoutVariant) {
             LayoutVariants.AS_GRID -> {
                 recyclerView.layoutManager = GridLayoutManager(context, ROW_NUMBER)
             }
@@ -411,16 +396,16 @@ class NewsAllFragment : Fragment() {
     }
 
     private fun changeLayoutManager() {
-        when (savedRotationModel.currentLayoutVariant) {
+        when (currentLayoutVariant) {
             LayoutVariants.AS_GRID -> {
-                savedRotationModel.currentLayoutVariant = LayoutVariants.AS_LIST
+                currentLayoutVariant = LayoutVariants.AS_LIST
                 recyclerView.apply {
                     layoutManager = LinearLayoutManager(context)
                     adapter = newsAdapter
                 }
             }
             LayoutVariants.AS_LIST -> {
-                savedRotationModel.currentLayoutVariant = LayoutVariants.AS_GRID
+                currentLayoutVariant = LayoutVariants.AS_GRID
                 recyclerView.apply {
                     layoutManager = GridLayoutManager(context, ROW_NUMBER)
                     adapter = newsAdapter
@@ -430,85 +415,85 @@ class NewsAllFragment : Fragment() {
     }
 
     private fun resetAll() {
-        savedRotationModel.articles.clear()
-        newsAdapter.updateList(savedRotationModel.articles)
-        savedRotationModel.currentCountryPage = ONE
-        savedRotationModel.currentSearchPage = ONE
-        savedRotationModel.savedSortByParameter = SortVariants.PUBLISHED_AT
-        savedRotationModel.savedFilterParameter = FilterVariants.DEFAULT
-        savedRotationModel.savedQuery = StringPool.EMPTY.value
-        savedRotationModel.isSearch = false
-        savedRotationModel.isFilter = false
+        articles.clear()
+        newsAdapter.updateList(articles)
+        currentCountryPage = ONE
+        currentSearchPage = ONE
+        savedSortByParameter = SortVariants.PUBLISHED_AT
+        savedFilterParameter = FilterVariants.DEFAULT
+        savedQuery = StringPool.EMPTY.value
+        isSearch = false
+        isFilter = false
         mNewsAllFragmentViewModel.loadCountryNews()
     }
 
     private fun performSortAction(sortBy: SortVariants, bottomSheetDialog: BottomSheetDialog) {
-        savedRotationModel.currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
-        savedRotationModel.articles.clear()
-        newsAdapter.updateList(savedRotationModel.articles)
-        savedRotationModel.savedSortByParameter = sortBy
-        savedRotationModel.savedFilterParameter = FilterVariants.DEFAULT
+        currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
+        articles.clear()
+        newsAdapter.updateList(articles)
+        savedSortByParameter = sortBy
+        savedFilterParameter = FilterVariants.DEFAULT
         searchNews(
-            savedRotationModel.savedQuery,
-            DEFAULT_ITEMS_ON_PAGE,
-            savedRotationModel.savedSortByParameter.sortBy,
-            null,
-            false
+                savedQuery,
+                DEFAULT_ITEMS_ON_PAGE,
+                savedSortByParameter.sortBy,
+                null,
+                false
         )
         bottomSheetDialog.dismiss()
         clearFocus()
     }
 
     private fun performFilterAction(
-        filterBy: FilterVariants,
-        bottomSheetDialog: BottomSheetDialog
+            filterBy: FilterVariants,
+            bottomSheetDialog: BottomSheetDialog
     ) {
-        savedRotationModel.isFilter = true
-        savedRotationModel.savedFilterParameter = filterBy
-        savedRotationModel.currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
+        isFilter = true
+        savedFilterParameter = filterBy
+        currentSearchPage = DEFAULT_CURRENT_SEARCH_PAGE
         val doFilter = filterBy != FilterVariants.DEFAULT
         searchNews(
-            savedRotationModel.savedQuery,
-            if (doFilter)
-                FILTERING_ITEMS_ON_PAGE
-            else
-                DEFAULT_ITEMS_ON_PAGE,
-            savedRotationModel.savedSortByParameter.sortBy,
-            if (doFilter)
-                ::filterNews
-            else
-                null,
-            doFilter
+                savedQuery,
+                if (doFilter)
+                    FILTERING_ITEMS_ON_PAGE
+                else
+                    DEFAULT_ITEMS_ON_PAGE,
+                savedSortByParameter.sortBy,
+                if (doFilter)
+                    ::filterNews
+                else
+                    null,
+                doFilter
         )
-        savedRotationModel.articles.clear()
-        newsAdapter.updateList(savedRotationModel.articles)
+        articles.clear()
+        newsAdapter.updateList(articles)
         hideMoreButton()
         bottomSheetDialog.dismiss()
         clearFocus()
     }
 
     private fun filterNews(
-        newsItems: ArrayList<Article>,
-        filterBy: FilterVariants
+            newsItems: ArrayList<Article>,
+            filterBy: FilterVariants
     ): ArrayList<Article> {
         val currentDate = LocalDateTime.now()
         val filteredNews = newsItems.stream()
-            .filter { newsItem ->
-                val date = LocalDateTime.parse(
-                    newsItem.publishedAt,
-                    DateTimeFormatter.ofPattern(StringPool.ISO_DATE_TIME.value)
-                )
-                when (filterBy) {
-                    FilterVariants.TODAY -> date.dayOfYear.compareTo(currentDate.dayOfYear) == ZERO
-                    FilterVariants.THIS_WEEK -> date.isBefore(currentDate) && date.isAfter(
-                        currentDate.minusWeeks(ONE.toLong())
+                .filter { newsItem ->
+                    val date = LocalDateTime.parse(
+                            newsItem.publishedAt,
+                            DateTimeFormatter.ofPattern(StringPool.ISO_DATE_TIME.value)
                     )
-                    FilterVariants.THIS_MONTH -> date.isBefore(currentDate) && date.isAfter(
-                        currentDate.minusMonths(ONE.toLong())
-                    )
-                    FilterVariants.DEFAULT -> false
-                }
-            }.collect(Collectors.toList())
+                    when (filterBy) {
+                        FilterVariants.TODAY -> date.dayOfYear.compareTo(currentDate.dayOfYear) == ZERO
+                        FilterVariants.THIS_WEEK -> date.isBefore(currentDate) && date.isAfter(
+                                currentDate.minusWeeks(ONE.toLong())
+                        )
+                        FilterVariants.THIS_MONTH -> date.isBefore(currentDate) && date.isAfter(
+                                currentDate.minusMonths(ONE.toLong())
+                        )
+                        FilterVariants.DEFAULT -> false
+                    }
+                }.collect(Collectors.toList())
         if (filteredNews.isEmpty())
             showToast(R.string.no_matching_results)
         return filteredNews as ArrayList<Article>
@@ -520,42 +505,42 @@ class NewsAllFragment : Fragment() {
     }
 
     private fun searchNews(
-        query: String?,
-        pageSize: Int,
-        sortBy: String?,
-        filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?,
-        isFilterAction: Boolean
+            query: String?,
+            pageSize: Int,
+            sortBy: String?,
+            filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?,
+            isFilterAction: Boolean
     ) {
         lifecycleScope.launch {
             showProgressBar()
             try {
-                savedRotationModel.isSearch = true
+                isSearch = true
                 if (!isFilterAction)
-                    savedRotationModel.isFilter = false
+                    isFilter = false
                 query?.let {
                     val news = withContext(Dispatchers.IO) {
                         newsRepository.getEverythingNews(
-                            it,
-                            pageSize,
-                            savedRotationModel.currentSearchPage,
-                            sortBy
+                                it,
+                                pageSize,
+                                currentSearchPage,
+                                sortBy
                         )
                     }
                     news.let {
                         if (it.articles.isEmpty()) {
-                            savedRotationModel.currentSearchPage = ONE
+                            currentSearchPage = ONE
                             showToast(R.string.no_content)
                         } else {
-                            savedRotationModel.currentSearchPage++
+                            currentSearchPage++
                             recalculatePages(it)
                             val newArticles =
-                                if (filterNews != null)
-                                    filterNews(it.articles, savedRotationModel.savedFilterParameter)
-                                else
-                                    it.articles
-                            savedRotationModel.articles.addAll(newArticles)
+                                    if (filterNews != null)
+                                        filterNews(it.articles, savedFilterParameter)
+                                    else
+                                        it.articles
+                            articles.addAll(newArticles)
                             if (newArticles.isNotEmpty())
-                                newsAdapter.updateList(savedRotationModel.articles)
+                                newsAdapter.updateList(articles)
                         }
                         hideMoreButton()
                     }
@@ -570,9 +555,9 @@ class NewsAllFragment : Fragment() {
     }
 
     private fun showProgressBar() {
-        if (savedRotationModel.isSearch && savedRotationModel.articles.isEmpty() ||
-            !savedRotationModel.isSearch && savedRotationModel.articles.isEmpty() ||
-            savedRotationModel.isFilter && savedRotationModel.articles.isNotEmpty()
+        if (isSearch && articles.isEmpty() ||
+            !isSearch && articles.isEmpty() ||
+            isFilter && articles.isNotEmpty()
         )
             progressBar.visibility = View.VISIBLE
     }
@@ -591,8 +576,8 @@ class NewsAllFragment : Fragment() {
 
     private fun recalculatePages(response: NewsResponse) {
         val fullPages: Int =
-            if (response.totalResults > MAX_AVAILABLE_NEWS) MAX_AVAILABLE_NEWS / DEFAULT_ITEMS_ON_PAGE
-            else response.totalResults / DEFAULT_ITEMS_ON_PAGE
+                if (response.totalResults > MAX_AVAILABLE_NEWS) MAX_AVAILABLE_NEWS / DEFAULT_ITEMS_ON_PAGE
+                else response.totalResults / DEFAULT_ITEMS_ON_PAGE
         val lost: Int = response.totalResults % DEFAULT_ITEMS_ON_PAGE
         availablePages = fullPages + if (lost > 0) 1 else 0
     }

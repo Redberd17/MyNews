@@ -5,11 +5,9 @@ import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.SortVariants
 import kotlinx.android.parcel.Parcelize
-import kotlinx.android.parcel.RawValue
 
 @Parcelize
 data class SavedRotationModel(
-    var articles: @RawValue ArrayList<Article>,
     var currentCountryPage: Int,
     var currentSearchPage: Int,
     var savedQuery: String,

@@ -1,10 +1,11 @@
 package com.chugunova.mynews.viewmodel
 
 import android.app.Application
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chugunova.mynews.dao.ArticleDatabase
+import com.chugunova.mynews.model.Article
 import com.chugunova.mynews.model.NewsRepository
 import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.model.api.ApiHelper
@@ -21,16 +22,16 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketAddress
 
-class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(application) {
+class NewsAllFragmentViewModel(application: Application) : ViewModel() {
 
     val liveData = MutableLiveData<SavedRotationModel>()
+    val articlesLiveData = MutableLiveData<ArrayList<Article>>()
 
     private val newsRepository = NewsRepository(
             ApiHelper(ConfigRetrofit.apiService),
-            ArticleDatabase.getInstance(getApplication()).articleDao())
+            ArticleDatabase.getInstance(application).articleDao())
 
     private var savedRotationModel = SavedRotationModel(
-            arrayListOf(),
             0,
             0,
             savedQuery = StringPool.EMPTY.value,
@@ -54,8 +55,8 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
                 }
 
                 news.let {
-                    savedRotationModel.articles.addAll(it)
                     liveData.postValue(savedRotationModel)
+                    articlesLiveData.postValue(it)
                 }
 
             } catch (e: Exception) {
