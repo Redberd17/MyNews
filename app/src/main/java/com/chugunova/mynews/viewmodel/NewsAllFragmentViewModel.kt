@@ -7,6 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.chugunova.mynews.dao.ArticleDatabase
 import com.chugunova.mynews.model.Article
 import com.chugunova.mynews.model.NewsRepository
+import com.chugunova.mynews.model.NewsRepository.Companion.DEFAULT_ITEMS_ON_PAGE
 import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.model.api.ApiHelper
 import com.chugunova.mynews.model.api.ConfigRetrofit
@@ -27,6 +28,10 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
     val liveData = MutableLiveData<SavedRotationModel>()
     val articlesLiveData = MutableLiveData<ArrayList<Article>>()
 
+    companion object {
+        var count: Int = -DEFAULT_ITEMS_ON_PAGE
+    }
+
     private val newsRepository = NewsRepository(
             ApiHelper(ConfigRetrofit.apiService),
             ArticleDatabase.getInstance(application).articleDao())
@@ -42,28 +47,101 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
             LayoutVariants.AS_GRID
     )
 
+    private var articles: ArrayList<Article> = arrayListOf()
+
     fun loadCountryNews() {
         viewModelScope.launch {
             try {
                 savedRotationModel.currentCountryPage++
                 val news = withContext(Dispatchers.IO) {
-                    newsRepository.getTopHeadlinesNews(
+                    newsRepository.requestNews(
+                            isOnline(),
+                            isSearch = false,
                             StringPool.US.value,
                             savedRotationModel.currentCountryPage,
-                            isOnline()
+                            q = StringPool.US.value,
+                            0,
+                            sortBy = StringPool.EMPTY.value
                     )
                 }
 
                 news.let {
                     liveData.postValue(savedRotationModel)
-                    articlesLiveData.postValue(it)
+                    articles.addAll(it)
+                    articlesLiveData.postValue(articles)
                 }
 
             } catch (e: Exception) {
                 println(e)
-                //                showToast(R.string.internet_error)
+//                showToast(R.string.internet_error)
             }
         }
+    }
+
+    fun searchNews(
+            query: String?,
+            pageSize: Int,
+            sortBy: String?,
+            filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?,
+            isFilterAction: Boolean,
+            isContinue: Boolean
+    ) {
+        viewModelScope.launch {
+            try {
+                if (!isContinue) {
+                    savedRotationModel.currentSearchPage = 0
+                }
+                savedRotationModel.currentSearchPage++
+                savedRotationModel.isSearch = true
+                if (!isFilterAction)
+                    savedRotationModel.isFilter = false
+                query?.let {
+                    val news = withContext(Dispatchers.IO) {
+                        newsRepository.requestNews(
+                                isOnline(),
+                                isSearch = true,
+                                StringPool.EMPTY.value,
+                                savedRotationModel.currentSearchPage,
+                                q = it,
+                                pageSize,
+                                sortBy
+                        )
+                    }
+                    news.let {
+                        if (it.isEmpty()) {
+                            savedRotationModel.currentSearchPage = 1
+//                            showToast(R.string.no_content)
+                        } else {
+                            val newArticles =
+                                    if (filterNews != null)
+                                        filterNews(it, savedRotationModel.savedFilterParameter)
+                                    else
+                                        it
+                            savedRotationModel.savedQuery = query
+                            liveData.postValue(savedRotationModel)
+                            articles.addAll(newArticles)
+                            articlesLiveData.postValue(articles)
+                        }
+                    }
+                }
+            } catch (e: Throwable) {
+                println(e)
+//                showToast(R.string.internet_error)
+            }
+        }
+    }
+
+    fun resetAll() {
+        articles = arrayListOf()
+        savedRotationModel.currentCountryPage = 0
+        savedRotationModel.currentSearchPage = 0
+        savedRotationModel.savedSortByParameter = SortVariants.PUBLISHED_AT
+        savedRotationModel.savedFilterParameter = FilterVariants.DEFAULT
+        savedRotationModel.savedQuery = StringPool.EMPTY.value
+        savedRotationModel.isSearch = false
+        savedRotationModel.isFilter = false
+        count = -DEFAULT_ITEMS_ON_PAGE
+        loadCountryNews()
     }
 
     private fun isOnline(): Boolean {

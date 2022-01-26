@@ -13,7 +13,9 @@ import android.webkit.WebView
 import android.widget.ProgressBar
 import androidx.fragment.app.Fragment
 import com.chugunova.mynews.R
-
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
 
 class NewsDetailFragment : Fragment() {
 
@@ -46,12 +48,26 @@ class NewsDetailFragment : Fragment() {
         val url = arguments?.getString(NewsAllFragment.NEWS_URL_STRING)
         val webSettings = webView.settings
         webSettings.javaScriptEnabled = true
-        webSettings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW;
+        webSettings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
         webSettings.allowFileAccess = true
-        webView.clearCache(true)
+        webSettings.databaseEnabled = true
+        webSettings.cacheMode =
+                if (isOnline()) {
+                    WebSettings.LOAD_DEFAULT
+                } else {
+                    WebSettings.LOAD_CACHE_ELSE_NETWORK
+                }
         url?.let {
             webView.loadUrl(it)
         }
+    }
+
+    private fun isOnline(): Boolean {
+        val cm = requireActivity().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkCapabilities = cm.activeNetwork ?: return false
+        val netInfo = cm.getNetworkCapabilities(networkCapabilities)
+        return netInfo != null && netInfo.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                && netInfo.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
