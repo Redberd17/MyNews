@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.chugunova.mynews.R
 import com.chugunova.mynews.dao.ArticleDatabase
 import com.chugunova.mynews.model.Article
 import com.chugunova.mynews.model.NewsRepository
@@ -27,6 +28,7 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
 
     val liveData = MutableLiveData<SavedRotationModel>()
     val articlesLiveData = MutableLiveData<ArrayList<Article>>()
+    val toastLiveData = MutableLiveData<Int>()
 
     companion object {
         var count: Int = -DEFAULT_ITEMS_ON_PAGE
@@ -70,10 +72,9 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                     articles.addAll(it)
                     articlesLiveData.postValue(articles)
                 }
-
+                showToast(news)
             } catch (e: Exception) {
                 println(e)
-//                showToast(R.string.internet_error)
             }
         }
     }
@@ -110,7 +111,6 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                     news.let {
                         if (it.isEmpty()) {
                             savedRotationModel.currentSearchPage = 1
-//                            showToast(R.string.no_content)
                         } else {
                             val newArticles =
                                     if (filterNews != null)
@@ -123,10 +123,10 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                             articlesLiveData.postValue(articles)
                         }
                     }
+                    showToast(news)
                 }
             } catch (e: Throwable) {
                 println(e)
-//                showToast(R.string.internet_error)
             }
         }
     }
@@ -142,6 +142,19 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
         savedRotationModel.isFilter = false
         count = -DEFAULT_ITEMS_ON_PAGE
         loadCountryNews()
+    }
+
+    private suspend fun showToast(news: ArrayList<Article>) {
+        withContext(Dispatchers.IO) {
+            if (news.isEmpty()) {
+                if (isOnline()) {
+                    toastLiveData.postValue(R.string.no_content)
+                } else {
+                    toastLiveData.postValue(R.string.no_matching_results)
+                }
+                articlesLiveData.postValue(arrayListOf())
+            }
+        }
     }
 
     private fun isOnline(): Boolean {

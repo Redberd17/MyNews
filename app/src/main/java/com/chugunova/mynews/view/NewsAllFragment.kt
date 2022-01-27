@@ -59,6 +59,8 @@ class NewsAllFragment : Fragment() {
     private var savedFilterParameter = FilterVariants.DEFAULT
     private var currentLayoutVariant = LayoutVariants.AS_GRID
 
+    private var toastText: Int = 0
+
     companion object {
         fun newInstance() = NewsAllFragment()
         private const val DEFAULT_CURRENT_SEARCH_PAGE = 1
@@ -91,9 +93,16 @@ class NewsAllFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        mNewsAllFragmentViewModel.toastLiveData.observe(viewLifecycleOwner, {
+            toastText = it
+        })
+
         mNewsAllFragmentViewModel.articlesLiveData.observe(viewLifecycleOwner, {
             articles = it
             newsAdapter.updateList(articles)
+            if (it.isEmpty()) {
+                showToast(toastText)
+            }
         })
 
         mNewsAllFragmentViewModel.liveData.observe(viewLifecycleOwner, {
