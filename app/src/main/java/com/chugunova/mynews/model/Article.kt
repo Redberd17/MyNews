@@ -9,8 +9,7 @@ import kotlinx.android.parcel.Parcelize
 @Entity(tableName = "articles")
 data class Article(
     @PrimaryKey val id: Long?,
-    var typeOfQuery: String?, //can be "us", "apple", "sony" and more
-//    @Ignore val source: Source,
+    var typeOfQuery: String?,
     val author: String?,
     val title: String,
     val description: String?,

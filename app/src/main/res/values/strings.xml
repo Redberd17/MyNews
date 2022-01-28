@@ -18,7 +18,7 @@
     <string name="internet_error">Internet error</string>
     <string name="publishedAt">"Date: %1$s"</string>
     <string name="no_content">No content found</string>
-    <string name="no_matching_results">No matching results</string>
+    <string name="no_matching_results">No matching results from database</string>
     <string name="sortUnavailable">Sorting is unavailable for the default screen</string>
     <string name="filterUnavailable">Filtering is unavailable for the default screen</string>
     <string name="waiter">waiter</string>

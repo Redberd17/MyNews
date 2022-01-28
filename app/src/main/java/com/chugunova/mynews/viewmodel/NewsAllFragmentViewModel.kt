@@ -82,7 +82,7 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
     fun searchNews(
             query: String?,
             pageSize: Int,
-            sortBy: String?,
+            sortBy: SortVariants?,
             filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?,
             isFilterAction: Boolean,
             isContinue: Boolean
@@ -91,6 +91,7 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
             try {
                 if (!isContinue) {
                     savedRotationModel.currentSearchPage = 0
+                    articles.clear()
                 }
                 savedRotationModel.currentSearchPage++
                 savedRotationModel.isSearch = true
@@ -105,7 +106,7 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                                 savedRotationModel.currentSearchPage,
                                 q = it,
                                 pageSize,
-                                sortBy
+                                sortBy?.sortBy
                         )
                     }
                     news.let {
@@ -117,6 +118,9 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                                         filterNews(it, savedRotationModel.savedFilterParameter)
                                     else
                                         it
+                            if (sortBy != null) {
+                                savedRotationModel.savedSortByParameter = sortBy
+                            }
                             savedRotationModel.savedQuery = query
                             liveData.postValue(savedRotationModel)
                             articles.addAll(newArticles)
@@ -155,6 +159,11 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                 articlesLiveData.postValue(arrayListOf())
             }
         }
+    }
+
+    fun changeView(typeOfView: LayoutVariants) {
+        savedRotationModel.currentLayoutVariant = typeOfView
+        liveData.postValue(savedRotationModel)
     }
 
     private fun isOnline(): Boolean {

@@ -19,9 +19,4 @@ interface ArticleDao {
     @Query("DELETE from articles WHERE typeOfQuery = :typeOfQuery")
     fun deleteUnusedArticles(typeOfQuery: String)
 
-//    @Query("TRUNCATE TABLE articles")
-//    fun clearAllTable()
-
-    @Query("DELETE from articles")
-    fun clearAllTable()
 }
