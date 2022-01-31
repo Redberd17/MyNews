@@ -49,8 +49,6 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
             LayoutVariants.AS_GRID
     )
 
-    private var articles: ArrayList<Article> = arrayListOf()
-
     fun loadCountryNews() {
         viewModelScope.launch {
             try {
@@ -69,8 +67,14 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
 
                 news.let {
                     liveData.postValue(savedRotationModel)
-                    articles.addAll(it)
-                    articlesLiveData.postValue(articles)
+                    articlesLiveData.value =
+                            if (articlesLiveData.value == null) {
+                                it
+                            } else {
+                                articlesLiveData.value?.toMutableList()?.apply {
+                                    addAll(it)
+                                } as ArrayList<Article>
+                            }
                 }
                 showToast(news)
             } catch (e: Exception) {
@@ -91,7 +95,7 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
             try {
                 if (!isContinue) {
                     savedRotationModel.currentSearchPage = 0
-                    articles.clear()
+                    articlesLiveData.value?.clear()
                 }
                 savedRotationModel.currentSearchPage++
                 savedRotationModel.isSearch = true
@@ -123,8 +127,14 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                             }
                             savedRotationModel.savedQuery = query
                             liveData.postValue(savedRotationModel)
-                            articles.addAll(newArticles)
-                            articlesLiveData.postValue(articles)
+                            articlesLiveData.value =
+                                    if (articlesLiveData.value == null) {
+                                        newArticles
+                                    } else {
+                                        articlesLiveData.value?.toMutableList()?.apply {
+                                            addAll(newArticles)
+                                        } as ArrayList<Article>
+                                    }
                         }
                     }
                     showToast(news)
@@ -136,7 +146,7 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
     }
 
     fun resetAll() {
-        articles = arrayListOf()
+        articlesLiveData.value?.clear()
         savedRotationModel.currentCountryPage = 0
         savedRotationModel.currentSearchPage = 0
         savedRotationModel.savedSortByParameter = SortVariants.PUBLISHED_AT
