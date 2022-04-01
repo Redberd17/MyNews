@@ -19,7 +19,7 @@ class ApiHelper(private val apiService: NewsApiService) {
         }
     }
 
-    suspend fun getTopHeadlinesNews(country: String, page: Int): NewsResponse {
-        return apiService.getTopHeadlinesNews(country, API_KEY, page)
+    suspend fun getTopHeadlinesNews(country: String, page: Int, token: String): NewsResponse {
+        return apiService.getTopHeadlinesNews(country, page, token)
     }
 }

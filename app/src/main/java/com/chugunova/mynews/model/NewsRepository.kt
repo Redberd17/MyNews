@@ -20,7 +20,8 @@ class NewsRepository(private val apiHelper: ApiHelper, private var articleDao: A
                             page: Int,
                             q: String,
                             pageSize: Int,
-                            sortBy: String?): ArrayList<Article> {
+                            sortBy: String?,
+                            token: String): ArrayList<Article> {
 
         return if (isNetworkAvailable) {
             count = -DEFAULT_ITEMS_ON_PAGE
@@ -28,7 +29,7 @@ class NewsRepository(private val apiHelper: ApiHelper, private var articleDao: A
                     if (isSearch) {
                         apiHelper.getEverythingNews(q, pageSize, page, sortBy)
                     } else {
-                        apiHelper.getTopHeadlinesNews(country, page)
+                        apiHelper.getTopHeadlinesNews(country, page, token)
                     }
             val articles: ArrayList<Article> = response.articles
             for (article in articles) {
@@ -57,10 +58,9 @@ class NewsRepository(private val apiHelper: ApiHelper, private var articleDao: A
 
     private fun recalculatePages(response: NewsResponse) {
         availablePagesForDownloading =
-                if (response.totalResults > MAX_AVAILABLE_NEWS){
+                if (response.totalResults > MAX_AVAILABLE_NEWS) {
                     MAX_AVAILABLE_NEWS / DEFAULT_ITEMS_ON_PAGE
-                }
-                else {
+                } else {
                     val fullPages = response.totalResults / DEFAULT_ITEMS_ON_PAGE
                     val lost: Int = response.totalResults % DEFAULT_ITEMS_ON_PAGE
                     fullPages + if (lost > 0) 1 else 0

@@ -32,11 +32,15 @@ import com.chugunova.mynews.viewmodel.NewsAllFragmentFactory
 import com.chugunova.mynews.viewmodel.NewsAllFragmentViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
+import com.google.android.material.tabs.TabLayout
+import kotlinx.android.synthetic.main.main_fragment.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
 
 class NewsAllFragment : Fragment() {
+
+    private val layout = R.layout.main_fragment
 
     private lateinit var mNewsAllFragmentViewModel: NewsAllFragmentViewModel
     private lateinit var recyclerView: RecyclerView
@@ -45,6 +49,9 @@ class NewsAllFragment : Fragment() {
     private lateinit var sortDialog: BottomSheetDialog
     private lateinit var filterDialog: BottomSheetDialog
     private lateinit var progressBar: ProgressBar
+    private lateinit var toolbar: Menu
+
+    private var position = 0
 
     private val newsAdapter: NewsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
 
@@ -57,14 +64,14 @@ class NewsAllFragment : Fragment() {
         private const val ZERO = 0
         private const val ONE = 1
         const val NEWS_URL_STRING = "newsUrl"
-        const val MAIN_SCREEN_FRAGMENT_STRING = "mainScreenFragment"
+        val TAG = NewsAllFragment::class.java.name
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
         //get view model from provider
-        mNewsAllFragmentViewModel = ViewModelProvider(this,
+        mNewsAllFragmentViewModel = ViewModelProvider(requireActivity(),
                 NewsAllFragmentFactory(requireActivity().application)
         )[NewsAllFragmentViewModel::class.java]
     }
@@ -73,13 +80,13 @@ class NewsAllFragment : Fragment() {
             inflater: LayoutInflater, container: ViewGroup?,
             savedInstanceState: Bundle?
     ): View {
-        return inflater.inflate(R.layout.main_fragment, container, false)
+        return inflater.inflate(layout, container, false)
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        mNewsAllFragmentViewModel.toastLiveData.observe(viewLifecycleOwner, {})
+        mNewsAllFragmentViewModel.toastLiveData.observe(requireActivity(), {})
 
         mNewsAllFragmentViewModel.articlesLiveData.observe(viewLifecycleOwner, { articles ->
             newsAdapter.updateList(articles)
@@ -106,8 +113,33 @@ class NewsAllFragment : Fragment() {
             showProgressBar()
             hideMoreButton()
             NewsAllFragmentViewModel.count = -NewsRepository.DEFAULT_ITEMS_ON_PAGE
-            mNewsAllFragmentViewModel.loadCountryNews()
+            mNewsAllFragmentViewModel.chooseNews(position)
         }
+
+        tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
+            override fun onTabSelected(tab: TabLayout.Tab?) {
+                if (tab?.position == 0) {
+                    // need to get user news here
+                    position = 0
+                    mNewsAllFragmentViewModel.chooseNews(position)
+                    setupUserToolbar()
+                }
+                if (tab?.position == 1) {
+                    // need to get world news here
+                    position = 1
+                    mNewsAllFragmentViewModel.chooseNews(position)
+                    setupWorldToolbar()
+                }
+            }
+
+            override fun onTabReselected(tab: TabLayout.Tab?) {
+                // Handle tab reselect
+            }
+
+            override fun onTabUnselected(tab: TabLayout.Tab?) {
+                // Handle tab unselect
+            }
+        })
 
         recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
@@ -144,14 +176,36 @@ class NewsAllFragment : Fragment() {
         }
     }
 
+    private fun setupUserToolbar() {
+        toolbar.findItem(R.id.search).isVisible = false
+        toolbar.findItem(R.id.sort).isVisible = false
+        toolbar.findItem(R.id.filter).isVisible = false
+        toolbar.findItem(R.id.changeView).isVisible = false
+        toolbar.findItem(R.id.resetAll).isVisible = false
+
+        toolbar.findItem(R.id.addUserNews).isVisible = true
+    }
+
+    private fun setupWorldToolbar() {
+        toolbar.findItem(R.id.search).isVisible = true
+        toolbar.findItem(R.id.sort).isVisible = true
+        toolbar.findItem(R.id.filter).isVisible = true
+        toolbar.findItem(R.id.changeView).isVisible = true
+        toolbar.findItem(R.id.resetAll).isVisible = true
+
+        toolbar.findItem(R.id.addUserNews).isVisible = false
+    }
+
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
+        toolbar = menu
         inflater.inflate(R.menu.menu, menu)
         val searchItem = menu.findItem(R.id.search)
         val sortItem = menu.findItem(R.id.sort)
         val filterItem = menu.findItem(R.id.filter)
         val changeView = menu.findItem(R.id.changeView)
         val resetAllItem = menu.findItem(R.id.resetAll)
+        val addNewsItem = menu.findItem(R.id.addUserNews)
         searchView = searchItem?.actionView as SearchView
         searchView.setOnSearchClickListener {
             searchView.setQuery(mNewsAllFragmentViewModel.liveData.value?.savedQuery, false)
@@ -212,6 +266,16 @@ class NewsAllFragment : Fragment() {
             mNewsAllFragmentViewModel.resetAll()
             false
         }
+        addNewsItem.setOnMenuItemClickListener {
+            requireActivity().supportFragmentManager.findFragmentByTag(TAG)?.let { oldFragment ->
+                activity?.supportFragmentManager
+                        ?.beginTransaction()
+                        ?.replace(oldFragment.id, AddUserNewsFragment.newInstance(), AddUserNewsFragment.TAG)
+                        ?.addToBackStack(null)
+                        ?.commit()
+            }
+            false
+        }
     }
 
     private fun showFullScreenNewsFragment(position: Int) {
@@ -223,7 +287,7 @@ class NewsAllFragment : Fragment() {
             )
         }
         val newAllFragment =
-                activity.supportFragmentManager.findFragmentByTag(MAIN_SCREEN_FRAGMENT_STRING) as NewsAllFragment
+                activity.supportFragmentManager.findFragmentByTag(TAG) as NewsAllFragment
         activity.supportFragmentManager.beginTransaction().apply {
             replace(
                     newAllFragment.id,

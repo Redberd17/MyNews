@@ -6,12 +6,12 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.chugunova.mynews.R
 import com.chugunova.mynews.dao.ArticleDatabase
-import com.chugunova.mynews.model.Article
-import com.chugunova.mynews.model.NewsRepository
+import com.chugunova.mynews.model.*
 import com.chugunova.mynews.model.NewsRepository.Companion.DEFAULT_ITEMS_ON_PAGE
-import com.chugunova.mynews.model.SavedRotationModel
 import com.chugunova.mynews.model.api.ApiHelper
 import com.chugunova.mynews.model.api.ConfigRetrofit
+import com.chugunova.mynews.service.NewsService
+import com.chugunova.mynews.service.UserService
 import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.SortVariants
@@ -23,12 +23,14 @@ import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketAddress
+import java.net.SocketTimeoutException
 
 class NewsAllFragmentViewModel(application: Application) : ViewModel() {
 
     val liveData = MutableLiveData<SavedRotationModel>()
     val articlesLiveData = MutableLiveData<ArrayList<Article>>()
     val toastLiveData = MutableLiveData<Int>()
+    val userLiveData = MutableLiveData<UserResponse?>()
 
     companion object {
         var count: Int = -DEFAULT_ITEMS_ON_PAGE
@@ -37,6 +39,9 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
     private val newsRepository = NewsRepository(
             ApiHelper(ConfigRetrofit.apiService),
             ArticleDatabase.getInstance(application).articleDao())
+
+    private val newsService = NewsService()
+    private val userService = UserService()
 
     private var savedRotationModel = SavedRotationModel(
             0,
@@ -48,6 +53,99 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
             FilterVariants.DEFAULT,
             LayoutVariants.AS_GRID
     )
+
+    private lateinit var token: String
+
+    suspend fun saveUserNews(title: String, description: String, url: String, urlToImage: String) {
+        viewModelScope.launch {
+            val news = withContext(Dispatchers.IO) {
+                newsService.saveUserNews(token, NewsToServer(title, description, url, urlToImage)).body()
+            }
+            val matchedArticle = news?.let { matchNewsToArticle(it) }
+            matchedArticle.let {
+                if (it != null) {
+                    liveData.postValue(savedRotationModel)
+                    articlesLiveData.value =
+                            if (articlesLiveData.value == null) {
+                                it
+                            } else {
+                                articlesLiveData.value?.toMutableList()?.apply {
+                                    addAll(it)
+                                } as ArrayList<Article>
+                            }
+                }
+            }
+        }
+    }
+
+    private fun matchNewsToArticle(news: NewsToServer): ArrayList<Article> {
+        return arrayListOf(Article(news.author, null, null, news.title,
+                news.description, news.url, news.urlToImage, news.publishedAt, null))
+    }
+
+    suspend fun saveAccount(authUser: AuthenticationUser) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    val response = userService.createUser(authUser)
+                    if (response.isSuccessful) {
+                        login(authUser)
+                    } else {
+                        toastLiveData.postValue(R.string.user_already_exist)
+                    }
+                } catch (e: SocketTimeoutException) {
+                    toastLiveData.postValue(R.string.no_connection_to_server)
+                }
+            }
+        }
+    }
+
+    suspend fun login(authUser: AuthenticationUser) {
+        viewModelScope.launch {
+            withContext(Dispatchers.IO) {
+                try {
+                    val response = userService.login(authUser)
+                    if (response.isSuccessful) {
+                        val userResponse: UserResponse? = response.body()
+                        userLiveData.postValue(userResponse!!)
+                        token = "Bearer_" + userResponse.token
+                    } else {
+                        userLiveData.postValue(null)
+                    }
+                } catch (e: SocketTimeoutException) {
+                    toastLiveData.postValue(R.string.no_connection_to_server)
+                }
+
+            }
+        }
+    }
+
+    fun chooseNews(position: Int) {
+        when (position) {
+            0 -> loadUserNews()
+            1 -> loadCountryNews()
+        }
+    }
+
+    private fun loadUserNews() {
+        viewModelScope.launch {
+            val news = withContext(Dispatchers.IO) {
+                ConfigRetrofit.apiService.getAllUserNews(token)
+            }
+            news.let {
+                liveData.postValue(savedRotationModel)
+                articlesLiveData.value =
+                        if (articlesLiveData.value == null) {
+                            it
+                        } else {
+                            articlesLiveData.value?.toMutableList()?.apply {
+                                clear()
+                                addAll(it)
+                            } as ArrayList<Article>
+                        }
+            }
+        }
+    }
 
     fun loadCountryNews() {
         viewModelScope.launch {
@@ -61,7 +159,8 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                             savedRotationModel.currentCountryPage,
                             q = StringPool.US.value,
                             0,
-                            sortBy = StringPool.EMPTY.value
+                            sortBy = StringPool.EMPTY.value,
+                            token
                     )
                 }
 
@@ -110,7 +209,8 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                                 savedRotationModel.currentSearchPage,
                                 q = it,
                                 pageSize,
-                                sortBy?.sortBy
+                                sortBy?.sortBy,
+                                token
                         )
                     }
                     news.let {

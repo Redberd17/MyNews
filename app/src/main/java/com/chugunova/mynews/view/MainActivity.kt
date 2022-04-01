@@ -20,8 +20,8 @@ class MainActivity : AppCompatActivity() {
             supportFragmentManager.beginTransaction()
                 .replace(
                     R.id.container,
-                    NewsAllFragment.newInstance(),
-                    NewsAllFragment.MAIN_SCREEN_FRAGMENT_STRING
+                    LoginFragment.newInstance(),
+                    LoginFragment.TAG
                 )
                 .commit()
         }
