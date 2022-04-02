@@ -8,7 +8,7 @@ import com.chugunova.mynews.R
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        supportActionBar?.setDisplayShowTitleEnabled(false);
+        supportActionBar?.setDisplayShowTitleEnabled(false)
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
         if (isDarkTheme()) {
@@ -18,12 +18,8 @@ class MainActivity : AppCompatActivity() {
         }
         if (savedInstanceState == null) {
             supportFragmentManager.beginTransaction()
-                .replace(
-                    R.id.container,
-                    LoginFragment.newInstance(),
-                    LoginFragment.TAG
-                )
-                .commit()
+                    .replace(R.id.container, LoginFragment.newInstance())
+                    .commit()
         }
     }
 

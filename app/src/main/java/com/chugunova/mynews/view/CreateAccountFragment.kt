@@ -22,13 +22,12 @@ import kotlinx.coroutines.launch
 
 class CreateAccountFragment : Fragment() {
 
-    lateinit var mNewsAllFragmentViewModel: NewsAllFragmentViewModel
+    private lateinit var mNewsAllFragmentViewModel: NewsAllFragmentViewModel
 
     private val layout = R.layout.create_account_fragment
 
     companion object {
         fun newInstance() = CreateAccountFragment()
-        val TAG = CreateAccountFragment::class.java.name
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,6 +35,19 @@ class CreateAccountFragment : Fragment() {
         mNewsAllFragmentViewModel = ViewModelProvider(requireActivity(),
                 NewsAllFragmentFactory(requireActivity().application)
         )[NewsAllFragmentViewModel::class.java]
+        mNewsAllFragmentViewModel.toastLiveData.observe(this, { it ->
+            it.getContentIfNotHandled()?.let {
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            }
+        })
+        mNewsAllFragmentViewModel.userLiveData.observe(this, {
+            it.getContentIfNotHandled()?.let {
+                requireActivity().supportFragmentManager
+                        .beginTransaction()
+                        .replace(R.id.container, NewsAllFragment.newInstance())
+                        .commit()
+            }
+        })
     }
 
     override fun onCreateView(
@@ -48,15 +60,10 @@ class CreateAccountFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        mNewsAllFragmentViewModel.toastLiveData.observe(requireActivity(), { toast ->
-            Toast.makeText(context, toast, Toast.LENGTH_SHORT).show()
-        })
-
         createNameText.addTextChangedListener(mWatcher)
         createPasswordText.addTextChangedListener(mWatcher)
 
         saveAccount.setOnClickListener {
-
             lifecycleScope.launch {
                 if (createNameText.text.toString().isNotEmpty() && createPasswordText.text.toString().isNotEmpty()) {
                     val authUser = AuthenticationUser(createNameText.text.toString(), createPasswordText.text.toString())

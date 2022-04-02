@@ -25,12 +25,14 @@ import java.net.Socket
 import java.net.SocketAddress
 import java.net.SocketTimeoutException
 
+
 class NewsAllFragmentViewModel(application: Application) : ViewModel() {
 
     val liveData = MutableLiveData<SavedRotationModel>()
     val articlesLiveData = MutableLiveData<ArrayList<Article>>()
-    val toastLiveData = MutableLiveData<Int>()
-    val userLiveData = MutableLiveData<UserResponse?>()
+
+    val userLiveData = MutableLiveData<Event<UserResponse>>()
+    val toastLiveData = MutableLiveData<Event<Int>>()
 
     companion object {
         var count: Int = -DEFAULT_ITEMS_ON_PAGE
@@ -58,9 +60,7 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
 
     suspend fun saveUserNews(title: String, description: String, url: String, urlToImage: String) {
         viewModelScope.launch {
-            val news = withContext(Dispatchers.IO) {
-                newsService.saveUserNews(token, NewsToServer(title, description, url, urlToImage)).body()
-            }
+            val news = newsService.saveUserNews(token, NewsToServer(title, description, url, urlToImage)).body()
             val matchedArticle = news?.let { matchNewsToArticle(it) }
             matchedArticle.let {
                 if (it != null) {
@@ -79,59 +79,55 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
     }
 
     private fun matchNewsToArticle(news: NewsToServer): ArrayList<Article> {
-        return arrayListOf(Article(news.author, null, null, news.title,
+        return arrayListOf(Article(null, null, news.author, news.title,
                 news.description, news.url, news.urlToImage, news.publishedAt, null))
     }
 
     suspend fun saveAccount(authUser: AuthenticationUser) {
         viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                try {
-                    val response = userService.createUser(authUser)
-                    if (response.isSuccessful) {
-                        login(authUser)
-                    } else {
-                        toastLiveData.postValue(R.string.user_already_exist)
-                    }
-                } catch (e: SocketTimeoutException) {
-                    toastLiveData.postValue(R.string.no_connection_to_server)
+            try {
+                val response = userService.createUser(authUser)
+                if (response.isSuccessful) {
+                    login(authUser)
+                } else {
+                    this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.user_already_exist)
                 }
+            } catch (e: SocketTimeoutException) {
+                this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.no_connection_to_server)
             }
         }
     }
 
     suspend fun login(authUser: AuthenticationUser) {
-        viewModelScope.launch {
-            withContext(Dispatchers.IO) {
-                try {
-                    val response = userService.login(authUser)
-                    if (response.isSuccessful) {
-                        val userResponse: UserResponse? = response.body()
-                        userLiveData.postValue(userResponse!!)
-                        token = "Bearer_" + userResponse.token
-                    } else {
-                        userLiveData.postValue(null)
-                    }
-                } catch (e: SocketTimeoutException) {
-                    toastLiveData.postValue(R.string.no_connection_to_server)
+        try {
+            val response = userService.login(authUser)
+            if (response.isSuccessful) {
+                response.body()?.let {
+                    val userResponse: UserResponse = it
+                    this.userLiveData.value = Event(userResponse)
+                    token = "Bearer_" + userResponse.token
                 }
-
+            } else {
+                this.toastLiveData.value = Event(R.string.incorrect_credentials)
             }
+        } catch (e: SocketTimeoutException) {
+            this.toastLiveData.value = Event(R.string.no_connection_to_server)
         }
     }
 
     fun chooseNews(position: Int) {
         when (position) {
             0 -> loadUserNews()
-            1 -> loadCountryNews()
+            1 -> {
+                savedRotationModel.currentCountryPage = 0
+                loadCountryNews()
+            }
         }
     }
 
     private fun loadUserNews() {
         viewModelScope.launch {
-            val news = withContext(Dispatchers.IO) {
-                ConfigRetrofit.apiService.getAllUserNews(token)
-            }
+            val news = ConfigRetrofit.apiService.getAllUserNews(token)
             news.let {
                 liveData.postValue(savedRotationModel)
                 articlesLiveData.value =
@@ -139,7 +135,6 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
                             it
                         } else {
                             articlesLiveData.value?.toMutableList()?.apply {
-                                clear()
                                 addAll(it)
                             } as ArrayList<Article>
                         }
@@ -258,16 +253,22 @@ class NewsAllFragmentViewModel(application: Application) : ViewModel() {
         loadCountryNews()
     }
 
-    private suspend fun showToast(news: ArrayList<Article>) {
-        withContext(Dispatchers.IO) {
-            if (news.isEmpty()) {
-                if (isOnline()) {
-                    toastLiveData.postValue(R.string.no_content)
-                } else {
-                    toastLiveData.postValue(R.string.no_matching_results)
-                }
-                articlesLiveData.postValue(arrayListOf())
+    fun clearArticleLiveData() {
+        articlesLiveData.value?.clear()
+    }
+
+    fun clearUserDetails() {
+        token = ""
+    }
+
+    private fun showToast(news: ArrayList<Article>) {
+        if (news.isEmpty()) {
+            if (isOnline()) {
+                this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.no_content)
+            } else {
+                this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.no_matching_results)
             }
+            articlesLiveData.postValue(arrayListOf())
         }
     }
 

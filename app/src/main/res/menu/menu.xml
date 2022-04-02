@@ -38,4 +38,9 @@
         android:icon="@drawable/icon_add_news"
         android:title="@string/add_user_news"
         app:showAsAction="always" />
+
+    <item
+        android:id="@+id/logout"
+        android:title="@string/logout"
+        app:showAsAction="never" />
 </menu>

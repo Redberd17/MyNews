@@ -3,11 +3,7 @@ package com.chugunova.mynews.view
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.TypedValue
-import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.View
-import android.view.ViewGroup
+import android.view.*
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.Toast
@@ -64,7 +60,6 @@ class NewsAllFragment : Fragment() {
         private const val ZERO = 0
         private const val ONE = 1
         const val NEWS_URL_STRING = "newsUrl"
-        val TAG = NewsAllFragment::class.java.name
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,6 +69,21 @@ class NewsAllFragment : Fragment() {
         mNewsAllFragmentViewModel = ViewModelProvider(requireActivity(),
                 NewsAllFragmentFactory(requireActivity().application)
         )[NewsAllFragmentViewModel::class.java]
+        mNewsAllFragmentViewModel.toastLiveData.observe(requireActivity(), {})
+        mNewsAllFragmentViewModel.articlesLiveData.observe(requireActivity(), { articles ->
+            newsAdapter.updateList(articles)
+            if (articles.isEmpty()) {
+                mNewsAllFragmentViewModel.toastLiveData.value?.let { it ->
+                    it.getContentIfNotHandled()?.let {
+                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        })
+        mNewsAllFragmentViewModel.liveData.observe(this, {
+            hideProgressBar()
+            hideMoreButton()
+        })
     }
 
     override fun onCreateView(
@@ -85,21 +95,6 @@ class NewsAllFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        mNewsAllFragmentViewModel.toastLiveData.observe(requireActivity(), {})
-
-        mNewsAllFragmentViewModel.articlesLiveData.observe(viewLifecycleOwner, { articles ->
-            newsAdapter.updateList(articles)
-            if (articles.isEmpty()) {
-                mNewsAllFragmentViewModel.toastLiveData.value?.let { toast -> showToast(toast) }
-            }
-        })
-
-        mNewsAllFragmentViewModel.liveData.observe(viewLifecycleOwner, {
-            hideProgressBar()
-            hideMoreButton()
-        })
-
         recyclerView = view.findViewById(R.id.recyclerView)
         showMoreButton = view.findViewById(R.id.showMoreButton)
         progressBar = view.findViewById(R.id.mainProgressBar)
@@ -121,12 +116,14 @@ class NewsAllFragment : Fragment() {
                 if (tab?.position == 0) {
                     // need to get user news here
                     position = 0
+                    mNewsAllFragmentViewModel.clearArticleLiveData()
                     mNewsAllFragmentViewModel.chooseNews(position)
                     setupUserToolbar()
                 }
                 if (tab?.position == 1) {
                     // need to get world news here
                     position = 1
+                    mNewsAllFragmentViewModel.clearArticleLiveData()
                     mNewsAllFragmentViewModel.chooseNews(position)
                     setupWorldToolbar()
                 }
@@ -182,7 +179,6 @@ class NewsAllFragment : Fragment() {
         toolbar.findItem(R.id.filter).isVisible = false
         toolbar.findItem(R.id.changeView).isVisible = false
         toolbar.findItem(R.id.resetAll).isVisible = false
-
         toolbar.findItem(R.id.addUserNews).isVisible = true
     }
 
@@ -192,7 +188,6 @@ class NewsAllFragment : Fragment() {
         toolbar.findItem(R.id.filter).isVisible = true
         toolbar.findItem(R.id.changeView).isVisible = true
         toolbar.findItem(R.id.resetAll).isVisible = true
-
         toolbar.findItem(R.id.addUserNews).isVisible = false
     }
 
@@ -206,6 +201,7 @@ class NewsAllFragment : Fragment() {
         val changeView = menu.findItem(R.id.changeView)
         val resetAllItem = menu.findItem(R.id.resetAll)
         val addNewsItem = menu.findItem(R.id.addUserNews)
+        val logout = menu.findItem(R.id.logout)
         searchView = searchItem?.actionView as SearchView
         searchView.setOnSearchClickListener {
             searchView.setQuery(mNewsAllFragmentViewModel.liveData.value?.savedQuery, false)
@@ -267,14 +263,21 @@ class NewsAllFragment : Fragment() {
             false
         }
         addNewsItem.setOnMenuItemClickListener {
-            requireActivity().supportFragmentManager.findFragmentByTag(TAG)?.let { oldFragment ->
-                activity?.supportFragmentManager
-                        ?.beginTransaction()
-                        ?.replace(oldFragment.id, AddUserNewsFragment.newInstance(), AddUserNewsFragment.TAG)
-                        ?.addToBackStack(null)
-                        ?.commit()
-            }
+            requireActivity().supportFragmentManager
+                    .beginTransaction()
+                    .replace(R.id.container, AddUserNewsFragment.newInstance())
+                    .addToBackStack(null)
+                    .commit()
             false
+        }
+        logout.setOnMenuItemClickListener {
+            searchItem.collapseActionView()
+            mNewsAllFragmentViewModel.clearUserDetails()
+            requireActivity().supportFragmentManager
+                    .beginTransaction()
+                    .replace(R.id.container, LoginFragment.newInstance())
+                    .commit()
+            true
         }
     }
 
@@ -286,11 +289,9 @@ class NewsAllFragment : Fragment() {
                     mNewsAllFragmentViewModel.articlesLiveData.value?.get(position)?.url
             )
         }
-        val newAllFragment =
-                activity.supportFragmentManager.findFragmentByTag(TAG) as NewsAllFragment
         activity.supportFragmentManager.beginTransaction().apply {
             replace(
-                    newAllFragment.id,
+                    R.id.container,
                     NewsDetailFragment.newInstance().apply { arguments = bundle })
             addToBackStack(null)
             commit()

@@ -45,4 +45,5 @@
     <string name="validate_url_to_image">"Url to image cannot be empty"</string>
     <string name="validate_name">"Username cannot be empty"</string>
     <string name="validate_password">"Password cannot be empty"</string>
+    <string name="logout">Logout</string>
 </resources>

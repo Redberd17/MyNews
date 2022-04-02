@@ -22,13 +22,12 @@ import kotlinx.coroutines.launch
 
 class LoginFragment : Fragment() {
 
-    lateinit var mNewsAllFragmentViewModel: NewsAllFragmentViewModel
+    private lateinit var mNewsAllFragmentViewModel: NewsAllFragmentViewModel
 
     private val layout = R.layout.login_fragment
 
     companion object {
         fun newInstance() = LoginFragment()
-        val TAG = LoginFragment::class.java.name
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -36,6 +35,19 @@ class LoginFragment : Fragment() {
         mNewsAllFragmentViewModel = ViewModelProvider(requireActivity(),
                 NewsAllFragmentFactory(requireActivity().application)
         )[NewsAllFragmentViewModel::class.java]
+        mNewsAllFragmentViewModel.userLiveData.observe(this, {
+            it.getContentIfNotHandled()?.let {
+                requireActivity().supportFragmentManager
+                        .beginTransaction()
+                        .replace(R.id.container, NewsAllFragment.newInstance())
+                        .commit()
+            }
+        })
+        mNewsAllFragmentViewModel.toastLiveData.observe(this, { it ->
+            it.getContentIfNotHandled()?.let {
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+            }
+        })
     }
 
     override fun onCreateView(
@@ -51,10 +63,6 @@ class LoginFragment : Fragment() {
         enterNameText.addTextChangedListener(mWatcher)
         enterPasswordText.addTextChangedListener(mWatcher)
 
-        mNewsAllFragmentViewModel.toastLiveData.observe(requireActivity(), { toast ->
-            Toast.makeText(context, toast, Toast.LENGTH_SHORT).show()
-        })
-
         loginButton.setOnClickListener {
             lifecycleScope.launch {
                 if (enterNameText.text.toString().isNotEmpty() && enterPasswordText.text.toString().isNotEmpty()) {
@@ -65,27 +73,12 @@ class LoginFragment : Fragment() {
         }
 
         createAccountButton.setOnClickListener {
-            requireActivity().supportFragmentManager.findFragmentByTag(TAG)?.let { oldFragment ->
-                activity?.supportFragmentManager
-                        ?.beginTransaction()
-                        ?.replace(oldFragment.id, CreateAccountFragment.newInstance(), CreateAccountFragment.TAG)
-                        ?.addToBackStack(null)
-                        ?.commit()
-            }
+            requireActivity().supportFragmentManager
+                    .beginTransaction()
+                    .replace(R.id.container, CreateAccountFragment.newInstance())
+                    .addToBackStack(null)
+                    .commit()
         }
-
-        mNewsAllFragmentViewModel.userLiveData.observe(requireActivity(), { userResponse ->
-            if (userResponse == null) {
-                Toast.makeText(context, resources.getString(R.string.incorrect_credentials), Toast.LENGTH_SHORT).show()
-            } else {
-                requireActivity().supportFragmentManager.findFragmentByTag(TAG)?.let { oldFragment ->
-                    activity?.supportFragmentManager
-                            ?.beginTransaction()
-                            ?.replace(oldFragment.id, NewsAllFragment.newInstance(), NewsAllFragment.TAG)
-                            ?.commit()
-                }
-            }
-        })
     }
 
     private var mWatcher: TextWatcher = object : TextWatcher {

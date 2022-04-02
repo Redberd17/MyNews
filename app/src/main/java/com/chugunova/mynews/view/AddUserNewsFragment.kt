@@ -20,13 +20,12 @@ import kotlinx.coroutines.launch
 
 class AddUserNewsFragment : Fragment() {
 
-    lateinit var mNewsAllFragmentViewModel: NewsAllFragmentViewModel
+    private lateinit var mNewsAllFragmentViewModel: NewsAllFragmentViewModel
 
     private val layout = R.layout.add_user_news_fragment
 
     companion object {
         fun newInstance() = AddUserNewsFragment()
-        val TAG = AddUserNewsFragment::class.java.name
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -15,7 +15,7 @@ data class NewsToServer(
     val description: String = _description
     val url: String = _url
     val urlToImage: String = _urlToImage
-    var author: Long = 0
+    var author: String = ""
     var publishedAt: String = ""
 
     constructor(
@@ -24,9 +24,9 @@ data class NewsToServer(
             _url: String,
             _urlToImage: String,
             _publishedAt: String,
-            _userId: Long
+            _author: String
     ) : this(_title, _description, _url, _urlToImage) {
-        author = _userId
+        author = _author
         publishedAt = _publishedAt
     }
 }
