@@ -3,6 +3,7 @@ package com.chugunova.mynews.model
 import com.chugunova.mynews.dao.ArticleDao
 import com.chugunova.mynews.model.api.ApiHelper
 import com.chugunova.mynews.viewmodel.NewsAllFragmentViewModel.Companion.count
+import java.lang.String.format
 
 class NewsRepository(private val apiHelper: ApiHelper, private var articleDao: ArticleDao) {
 
@@ -27,7 +28,9 @@ class NewsRepository(private val apiHelper: ApiHelper, private var articleDao: A
             count = -DEFAULT_ITEMS_ON_PAGE
             val response: NewsResponse =
                     if (isSearch) {
-                        apiHelper.getEverythingNews(q, pageSize, page, sortBy)
+                        System.out.println(format("q = %s, pageSize = %d, page = %d, sortBy = %s, token = %s",
+                                q, pageSize, page, sortBy, token))
+                        apiHelper.getEverythingNews(q, pageSize, page, sortBy, token)
                     } else {
                         apiHelper.getTopHeadlinesNews(country, page, token)
                     }

@@ -1,37 +1,33 @@
 package com.chugunova.mynews.model.api
 
-import com.chugunova.mynews.model.AuthenticationUser
-import com.chugunova.mynews.model.Article
-import com.chugunova.mynews.model.NewsResponse
-import com.chugunova.mynews.model.NewsToServer
-import com.chugunova.mynews.model.UserResponse
+import com.chugunova.mynews.model.*
 import retrofit2.Response
 import retrofit2.http.*
 
 interface NewsApiService {
 
-    @GET("news/top/headlines/{country}/{page}")
+    @GET("news/top/headlines")
     suspend fun getTopHeadlinesNews(
-            @Path("country") country: String,
-            @Path("page") page: Int,
+            @Query("country") country: String,
+            @Query("page") page: Int,
             @Header("Authorization") token: String
     ): NewsResponse
 
-    @GET("everything")
+    @GET("news/everything")
     suspend fun getEverythingNews(
-        @Query("q") q: String,
-        @Query("apiKey") apiKey: String,
-        @Query("pageSize") pageSize: Int,
-        @Query("page") page: Int
+            @Query("q") q: String,
+            @Query("pageSize") pageSize: Int,
+            @Query("page") page: Int,
+            @Header("Authorization") token: String
     ): NewsResponse
 
-    @GET("everything")
+    @GET("news/everything")
     suspend fun sortNewsBy(
-        @Query("q") q: String,
-        @Query("apiKey") apiKey: String,
-        @Query("pageSize") pageSize: Int,
-        @Query("page") page: Int,
-        @Query("sortBy") sortBy: String
+            @Query("q") q: String,
+            @Query("pageSize") pageSize: Int,
+            @Query("page") page: Int,
+            @Query("sortBy") sortBy: String,
+            @Header("Authorization") token: String
     ): NewsResponse
 
     @POST("/auth/login")

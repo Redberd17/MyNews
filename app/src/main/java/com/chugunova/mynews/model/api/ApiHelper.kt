@@ -7,15 +7,16 @@ private const val API_KEY: String = "122c312bd35846c3bc567d40c992cb42"
 class ApiHelper(private val apiService: NewsApiService) {
 
     suspend fun getEverythingNews(
-        q: String,
-        pageSize: Int,
-        page: Int,
-        sortBy: String?
+            q: String,
+            pageSize: Int,
+            page: Int,
+            sortBy: String?,
+            token: String
     ): NewsResponse {
         return if (sortBy != null) {
-            apiService.sortNewsBy(q, API_KEY, pageSize, page, sortBy)
+            apiService.sortNewsBy(q, pageSize, page, sortBy, token)
         } else {
-            apiService.getEverythingNews(q, API_KEY, pageSize, page)
+            apiService.getEverythingNews(q, pageSize, page, token)
         }
     }
 

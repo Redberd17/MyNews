@@ -177,7 +177,6 @@ class NewsAllFragment : Fragment() {
         toolbar.findItem(R.id.search).isVisible = false
         toolbar.findItem(R.id.sort).isVisible = false
         toolbar.findItem(R.id.filter).isVisible = false
-        toolbar.findItem(R.id.changeView).isVisible = false
         toolbar.findItem(R.id.resetAll).isVisible = false
         toolbar.findItem(R.id.addUserNews).isVisible = true
     }
@@ -186,7 +185,6 @@ class NewsAllFragment : Fragment() {
         toolbar.findItem(R.id.search).isVisible = true
         toolbar.findItem(R.id.sort).isVisible = true
         toolbar.findItem(R.id.filter).isVisible = true
-        toolbar.findItem(R.id.changeView).isVisible = true
         toolbar.findItem(R.id.resetAll).isVisible = true
         toolbar.findItem(R.id.addUserNews).isVisible = false
     }

@@ -10,8 +10,8 @@ object ConfigRetrofit {
 
     private var retrofit: NewsApiService? = null
 
-    //private const val BASE_URL: String = "http://192.168.0.155:8080"
-    private const val BASE_URL: String = "http://172.20.10.2:8080"
+    private const val BASE_URL: String = "http://192.168.0.155:8080"
+//    private const val BASE_URL: String = "http://172.20.10.2:8080"
 
     private fun configureRetrofit(): NewsApiService {
         if (retrofit == null) {
