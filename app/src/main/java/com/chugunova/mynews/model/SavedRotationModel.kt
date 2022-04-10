@@ -8,12 +8,13 @@ import kotlinx.android.parcel.Parcelize
 
 @Parcelize
 data class SavedRotationModel(
-    var currentCountryPage: Int,
-    var currentSearchPage: Int,
-    var savedQuery: String,
-    var isSearch: Boolean,
-    var isFilter: Boolean,
-    var savedSortByParameter: SortVariants,
-    var savedFilterParameter: FilterVariants,
-    var currentLayoutVariant: LayoutVariants
+        var tabLayout: Int,
+        var currentCountryPage: Int,
+        var currentSearchPage: Int,
+        var savedQuery: String,
+        var isSearch: Boolean,
+        var isFilter: Boolean,
+        var savedSortByParameter: SortVariants,
+        var savedFilterParameter: FilterVariants,
+        var currentLayoutVariant: LayoutVariants
 ) : Parcelable

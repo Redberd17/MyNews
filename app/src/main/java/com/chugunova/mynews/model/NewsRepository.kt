@@ -3,7 +3,8 @@ package com.chugunova.mynews.model
 import com.chugunova.mynews.dao.ArticleDao
 import com.chugunova.mynews.model.api.ApiHelper
 import com.chugunova.mynews.viewmodel.NewsAllFragmentViewModel.Companion.count
-import java.lang.String.format
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 
 class NewsRepository(private val apiHelper: ApiHelper, private var articleDao: ArticleDao) {
 
@@ -22,44 +23,51 @@ class NewsRepository(private val apiHelper: ApiHelper, private var articleDao: A
                             q: String,
                             pageSize: Int,
                             sortBy: String?,
-                            token: String): ArrayList<Article> {
+                            token: String): ArrayList<Article>? {
 
         return if (isNetworkAvailable) {
             count = -DEFAULT_ITEMS_ON_PAGE
-            val response: NewsResponse =
-                    if (isSearch) {
-                        System.out.println(format("q = %s, pageSize = %d, page = %d, sortBy = %s, token = %s",
-                                q, pageSize, page, sortBy, token))
-                        apiHelper.getEverythingNews(q, pageSize, page, sortBy, token)
-                    } else {
-                        apiHelper.getTopHeadlinesNews(country, page, token)
-                    }
-            val articles: ArrayList<Article> = response.articles
-            for (article in articles) {
-                article.typeOfQuery = q
-            }
-            recalculatePages(response)
-            if (articleDao.getAllArticles(q).containsAll(articles)) {
-                if (availablePagesForDownloading != availablePages) {
-                    articleDao.deleteUnusedArticles(q)
-                    articleDao.insertAllArticles(articles)
-                }
+            val response = if (isSearch) {
+                apiHelper.getEverythingNews(q, pageSize, page, sortBy, token)
             } else {
-                if (availablePagesForDownloading != availablePages) {
-                    articleDao.deleteUnusedArticles(q)
-                }
-                articleDao.insertAllArticles(articles)
+                apiHelper.getTopHeadlinesNews(country, page, token)
             }
-            availablePages = availablePagesForDownloading
-            articles
+            if (response.isSuccessful) {
+                val articles = response.body()?.articles
+                if (articles != null) {
+                    for (article in articles) {
+                        article.typeOfQuery = q
+                    }
+                    withContext(Dispatchers.IO) {
+                        recalculatePages(response.body()!!)
+                        if (articleDao.getAllArticles(q).containsAll(articles)) {
+                            if (availablePagesForDownloading != availablePages) {
+                                articleDao.deleteUnusedArticles(q)
+                                articleDao.insertAllArticles(articles)
+                            }
+                        } else {
+                            if (availablePagesForDownloading != availablePages) {
+                                articleDao.deleteUnusedArticles(q)
+                            }
+                            articleDao.insertAllArticles(articles)
+                        }
+                        availablePages = availablePagesForDownloading
+                    }
+                }
+                articles
+            } else {
+                null
+            }
         } else {
-            recalculatePages(articleDao.getAllArticles(q) as ArrayList<Article>)
-            count += DEFAULT_ITEMS_ON_PAGE
-            articleDao.getArticles(q, count) as ArrayList<Article>
+            withContext(Dispatchers.IO) {
+                recalculatePages(articleDao.getAllArticles(q) as ArrayList<Article>)
+                count += DEFAULT_ITEMS_ON_PAGE
+                articleDao.getArticles(q, count) as ArrayList<Article>
+            }
         }
     }
 
-    private fun recalculatePages(response: NewsResponse) {
+    private fun recalculatePages(response: LegacyNewsResponse) {
         availablePagesForDownloading =
                 if (response.totalResults > MAX_AVAILABLE_NEWS) {
                     MAX_AVAILABLE_NEWS / DEFAULT_ITEMS_ON_PAGE

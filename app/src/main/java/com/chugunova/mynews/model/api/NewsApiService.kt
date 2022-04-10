@@ -11,7 +11,7 @@ interface NewsApiService {
             @Query("country") country: String,
             @Query("page") page: Int,
             @Header("Authorization") token: String
-    ): NewsResponse
+    ): Response<LegacyNewsResponse>
 
     @GET("news/everything")
     suspend fun getEverythingNews(
@@ -19,7 +19,7 @@ interface NewsApiService {
             @Query("pageSize") pageSize: Int,
             @Query("page") page: Int,
             @Header("Authorization") token: String
-    ): NewsResponse
+    ): Response<LegacyNewsResponse>
 
     @GET("news/everything")
     suspend fun sortNewsBy(
@@ -28,7 +28,7 @@ interface NewsApiService {
             @Query("page") page: Int,
             @Query("sortBy") sortBy: String,
             @Header("Authorization") token: String
-    ): NewsResponse
+    ): Response<LegacyNewsResponse>
 
     @POST("/auth/login")
     suspend fun login(@Body authUser: AuthenticationUser): Response<UserResponse>
@@ -37,11 +37,24 @@ interface NewsApiService {
     suspend fun createUser(@Body authUser: AuthenticationUser): Response<UserResponse>
 
     @GET("/news/all")
-    suspend fun getAllUserNews(@Header("Authorization") token: String): ArrayList<Article>
+    suspend fun getAllUserNews(@Header("Authorization") token: String): Response<ArrayList<Article>?>
 
     @POST("/news/new")
     suspend fun saveUserNews(
             @Header("Authorization") token: String,
-            @Body article: NewsToServer
-    ): Response<NewsToServer>
+            @Body article: NewsRequest
+    ): Response<NewsResponse>
+
+    @PUT("/news/{newsId}")
+    suspend fun updateUserNews(
+            @Header("Authorization") token: String,
+            @Path("newsId") id: Long,
+            @Body newsRequest: NewsRequest
+    ): Response<NewsResponse>
+
+    @DELETE("/news/{newsId}")
+    suspend fun deleteUserNews(
+            @Header("Authorization") token: String,
+            @Path("newsId") newsId: Long
+    ): Response<Unit>
 }

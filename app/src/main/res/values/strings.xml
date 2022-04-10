@@ -19,9 +19,14 @@
     <string name="publishedAt">"Date: %1$s"</string>
     <string name="no_content">No content found</string>
     <string name="no_connection_to_server">No connection to server</string>
+    <string name="no_internet">No internet</string>
     <string name="no_matching_results">No matching results from database</string>
     <string name="incorrect_credentials">"Username or password is incorrect"</string>
     <string name="user_already_exist">"User already exist"</string>
+    <string name="user_successfully_created">"User was successfully created"</string>
+    <string name="news_successfully_created">"News was successfully created"</string>
+    <string name="news_successfully_deleted">"News was successfully deleted"</string>
+    <string name="token_is_expired">"JWT token is expired"</string>
     <string name="sortUnavailable">Sorting is unavailable for the default screen</string>
     <string name="filterUnavailable">Filtering is unavailable for the default screen</string>
     <string name="waiter">waiter</string>
@@ -46,4 +51,6 @@
     <string name="validate_name">"Username cannot be empty"</string>
     <string name="validate_password">"Password cannot be empty"</string>
     <string name="logout">Logout</string>
+    <string name="edit_news">Edit News</string>
+    <string name="delete_news">Delete News</string>
 </resources>

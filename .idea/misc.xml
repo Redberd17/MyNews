@@ -4,6 +4,8 @@
     <option name="filePathToZoomLevelMap">
       <map>
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/drawable/icon_add_news.xml" value="0.24537037037037038" />
+        <entry key="..\:/Android/myProject/MyNews/app/src/main/res/drawable/icon_edit_news.xml" value="0.27239583333333334" />
+        <entry key="..\:/Android/myProject/MyNews/app/src/main/res/drawable/sort.xml" value="0.27239583333333334" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/add_user_news_fragment.xml" value="0.264" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/all_news_fragment.xml" value="0.12462006079027356" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/create_account_fragment.xml" value="0.264" />
@@ -13,11 +15,14 @@
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/main_activity.xml" value="0.13994565217391305" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/main_fragment.xml" value="0.176" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/news_item.xml" value="0.19202898550724637" />
+        <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/sort_bottom_sheet.xml" value="0.103125" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/user_news_fragment.xml" value="0.1875" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/world_news_fragment.xml" value="0.1875" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/layout/world_news_layout.xml" value="0.16802536231884058" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/menu/menu.xml" value="0.4" />
         <entry key="..\:/Android/myProject/MyNews/app/src/main/res/menu/menu2.xml" value="0.20277777777777778" />
+        <entry key="..\:/Android/myProject/MyNews/app/src/main/res/menu/menu_full_screen_news.xml" value="0.25625" />
+        <entry key="..\:/Android/myProject/MyNews/app/src/main/res/menu/menu_main_screen.xml" value="0.103125" />
       </map>
     </option>
   </component>

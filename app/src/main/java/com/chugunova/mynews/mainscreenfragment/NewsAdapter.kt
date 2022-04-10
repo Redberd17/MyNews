@@ -14,7 +14,6 @@ import com.chugunova.mynews.utils.StringPool
 import kotlinx.android.synthetic.main.news_item.view.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import java.util.*
 
 class NewsAdapter(val adapterOnClick: (Int) -> Unit) : RecyclerView.Adapter<NewsAdapter.ViewHolder>() {
 

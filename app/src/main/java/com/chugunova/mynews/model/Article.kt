@@ -8,13 +8,12 @@ import kotlinx.android.parcel.Parcelize
 @Parcelize
 @Entity(tableName = "articles")
 data class Article(
-    @PrimaryKey val id: Long?,
-    var typeOfQuery: String?,
-    val author: String?,
-    val title: String,
-    val description: String?,
-    val url: String,
-    val urlToImage: String?,
-    var publishedAt: String,
-    val content: String?
+        @PrimaryKey val id: Long?,
+        var typeOfQuery: String?,
+        val author: String?,
+        val title: String,
+        val description: String?,
+        val url: String,
+        val urlToImage: String?,
+        var publishedAt: String
 ) : Parcelable

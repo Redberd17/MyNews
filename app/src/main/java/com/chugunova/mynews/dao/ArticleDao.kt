@@ -10,7 +10,7 @@ interface ArticleDao {
     @Query("SELECT * FROM articles WHERE typeOfQuery = :typeOfQuery LIMIT :count,20")
     fun getArticles(typeOfQuery: String, count: Int): List<Article>
 
-    @Query("SELECT author, content, description, publishedAt, title, typeOfQuery, url, urlToImage FROM articles WHERE typeOfQuery = :typeOfQuery")
+    @Query("SELECT author, description, publishedAt, title, typeOfQuery, url, urlToImage FROM articles WHERE typeOfQuery = :typeOfQuery")
     fun getAllArticles(typeOfQuery: String): List<Article>
 
     @Insert

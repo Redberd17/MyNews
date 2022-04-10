@@ -1,5 +1,6 @@
 package com.chugunova.mynews.view
 
+import android.content.Context
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
@@ -10,6 +11,8 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import com.chugunova.mynews.R
+import com.chugunova.mynews.model.Article
+import com.chugunova.mynews.model.NewsRequest
 import com.chugunova.mynews.viewmodel.NewsAllFragmentFactory
 import com.chugunova.mynews.viewmodel.NewsAllFragmentViewModel
 import com.google.android.material.textfield.TextInputEditText
@@ -24,8 +27,15 @@ class AddUserNewsFragment : Fragment() {
 
     private val layout = R.layout.add_user_news_fragment
 
+    private var newsItem: Article? = null
+
     companion object {
         fun newInstance() = AddUserNewsFragment()
+    }
+
+    override fun onAttach(context: Context) {
+        super.onAttach(context)
+        newsItem = arguments?.getParcelable(NewsAllFragment.SAVED_NEWS)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -33,6 +43,7 @@ class AddUserNewsFragment : Fragment() {
         mNewsAllFragmentViewModel = ViewModelProvider(requireActivity(),
                 NewsAllFragmentFactory(requireActivity().application)
         )[NewsAllFragmentViewModel::class.java]
+
     }
 
     override fun onCreateView(
@@ -52,13 +63,36 @@ class AddUserNewsFragment : Fragment() {
 
         saveButton.setOnClickListener {
             lifecycleScope.launch {
-                mNewsAllFragmentViewModel.saveUserNews(
-                        enterTitleText.text.toString(),
-                        enterDescriptionText.text.toString(),
-                        enterUrlText.text.toString(),
-                        enterUrlToImageText.text.toString())
+                if (newsItem == null) {
+                    val newsRequest = NewsRequest(enterTitleText.text.toString(),
+                            enterDescriptionText.text.toString(),
+                            enterUrlText.text.toString(),
+                            enterUrlToImageText.text.toString())
+                    mNewsAllFragmentViewModel.saveUserNews(newsRequest)
+                    requireActivity().onBackPressed()
+                } else {
+                    newsItem!!.id?.let { id ->
+                        mNewsAllFragmentViewModel.articlesLiveData.value?.remove(newsItem)
+                        val newsRequest = NewsRequest(
+                                enterTitleText.text.toString(),
+                                enterDescriptionText.text.toString(),
+                                enterUrlText.text.toString(),
+                                enterUrlToImageText.text.toString())
+                        mNewsAllFragmentViewModel.updateUserNews(id, newsRequest)
+                    }
+                    requireActivity().supportFragmentManager
+                            .beginTransaction()
+                            .replace(R.id.container, NewsAllFragment.newInstance())
+                            .commit()
+                }
             }
-            requireActivity().onBackPressed()
+        }
+
+        if (newsItem != null) {
+            enterTitle.editText?.setText(newsItem?.title)
+            enterDescription.editText?.setText(newsItem?.description)
+            enterUrl.editText?.setText(newsItem?.url)
+            enterUrlToImage.editText?.setText(newsItem?.urlToImage)
         }
 
     }

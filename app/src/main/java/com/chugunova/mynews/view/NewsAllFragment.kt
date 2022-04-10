@@ -45,9 +45,9 @@ class NewsAllFragment : Fragment() {
     private lateinit var sortDialog: BottomSheetDialog
     private lateinit var filterDialog: BottomSheetDialog
     private lateinit var progressBar: ProgressBar
-    private lateinit var toolbar: Menu
+    private var toolbar: Menu? = null
 
-    private var position = 0
+    private var tabPosition = 0
 
     private val newsAdapter: NewsAdapter = NewsAdapter { item -> showFullScreenNewsFragment(item) }
 
@@ -59,28 +59,41 @@ class NewsAllFragment : Fragment() {
         private const val FILTERING_ITEMS_ON_PAGE = 100
         private const val ZERO = 0
         private const val ONE = 1
-        const val NEWS_URL_STRING = "newsUrl"
+        const val EDIT_NEWS = "editNews"
+        const val SAVED_NEWS = "savedNews"
+        const val AUTHOR_IS_EQUALS = "authorIsEquals"
+        const val TAB_IS_SELECTED = "tabSelected"
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
-        //get view model from provider
         mNewsAllFragmentViewModel = ViewModelProvider(requireActivity(),
                 NewsAllFragmentFactory(requireActivity().application)
         )[NewsAllFragmentViewModel::class.java]
-        mNewsAllFragmentViewModel.toastLiveData.observe(requireActivity(), {})
-        mNewsAllFragmentViewModel.articlesLiveData.observe(requireActivity(), { articles ->
-            newsAdapter.updateList(articles)
-            if (articles.isEmpty()) {
-                mNewsAllFragmentViewModel.toastLiveData.value?.let { it ->
-                    it.getContentIfNotHandled()?.let {
-                        Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
-                    }
+        mNewsAllFragmentViewModel.toastLiveData.observe(this, { it ->
+            it.getContentIfNotHandled()?.let {
+                Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
+                if (it == R.string.token_is_expired) {
+                    requireActivity().supportFragmentManager
+                            .beginTransaction()
+                            .replace(R.id.container, LoginFragment.newInstance())
+                            .commit()
                 }
             }
         })
+        mNewsAllFragmentViewModel.articlesLiveData.observe(requireActivity(), { articles ->
+            articles.let { newsAdapter.updateList(it) }
+        })
+        mNewsAllFragmentViewModel.userNewsLiveData.observe(requireActivity(), { articles ->
+            if (articles != null && tabPosition == 0) {
+                newsAdapter.updateList(articles)
+            }
+        })
         mNewsAllFragmentViewModel.liveData.observe(this, {
+            val tab: TabLayout.Tab? = tabLayout.getTabAt(it.tabLayout)
+            tabLayout.selectTab(tab)
+
             hideProgressBar()
             hideMoreButton()
         })
@@ -95,6 +108,14 @@ class NewsAllFragment : Fragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+
+        /*if (savedInstanceState != null) {
+            savedInstanceState.putInt(TAB_IS_SELECTED, mNewsAllFragmentViewModel.savedRotationModel.tabLayout)
+            tabPosition = savedInstanceState.getInt(TAB_IS_SELECTED)
+        }*/
+
+        tabPosition = mNewsAllFragmentViewModel.savedRotationModel.tabLayout
+
         recyclerView = view.findViewById(R.id.recyclerView)
         showMoreButton = view.findViewById(R.id.showMoreButton)
         progressBar = view.findViewById(R.id.mainProgressBar)
@@ -104,29 +125,31 @@ class NewsAllFragment : Fragment() {
             adapter = newsAdapter
         }
 
-        if (mNewsAllFragmentViewModel.articlesLiveData.value == null) {
-            showProgressBar()
-            hideMoreButton()
-            NewsAllFragmentViewModel.count = -NewsRepository.DEFAULT_ITEMS_ON_PAGE
-            mNewsAllFragmentViewModel.chooseNews(position)
-        }
+        showProgressBar()
+        hideMoreButton()
+        NewsAllFragmentViewModel.count = -NewsRepository.DEFAULT_ITEMS_ON_PAGE
+        mNewsAllFragmentViewModel.chooseNews()
 
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 if (tab?.position == 0) {
                     // need to get user news here
-                    position = 0
-                    mNewsAllFragmentViewModel.clearArticleLiveData()
-                    mNewsAllFragmentViewModel.chooseNews(position)
-                    setupUserToolbar()
+                    mNewsAllFragmentViewModel.savedRotationModel.tabLayout = 0
+                    tabPosition = mNewsAllFragmentViewModel.savedRotationModel.tabLayout
+                    if (toolbar != null) {
+                        setupUserToolbar()
+                    }
                 }
                 if (tab?.position == 1) {
                     // need to get world news here
-                    position = 1
-                    mNewsAllFragmentViewModel.clearArticleLiveData()
-                    mNewsAllFragmentViewModel.chooseNews(position)
-                    setupWorldToolbar()
+                    mNewsAllFragmentViewModel.savedRotationModel.tabLayout = 1
+                    tabPosition = mNewsAllFragmentViewModel.savedRotationModel.tabLayout
+                    if (toolbar != null) {
+                        setupWorldToolbar()
+                    }
                 }
+
+                mNewsAllFragmentViewModel.chooseNews()
             }
 
             override fun onTabReselected(tab: TabLayout.Tab?) {
@@ -168,31 +191,31 @@ class NewsAllFragment : Fragment() {
                 )
             } else {
                 hideMoreButton()
-                mNewsAllFragmentViewModel.loadCountryNews()
+                mNewsAllFragmentViewModel.loadCountryNews(true)
             }
         }
     }
 
     private fun setupUserToolbar() {
-        toolbar.findItem(R.id.search).isVisible = false
-        toolbar.findItem(R.id.sort).isVisible = false
-        toolbar.findItem(R.id.filter).isVisible = false
-        toolbar.findItem(R.id.resetAll).isVisible = false
-        toolbar.findItem(R.id.addUserNews).isVisible = true
+        toolbar?.findItem(R.id.search)?.isVisible = false
+        toolbar?.findItem(R.id.sort)?.isVisible = false
+        toolbar?.findItem(R.id.filter)?.isVisible = false
+        toolbar?.findItem(R.id.resetAll)?.isVisible = false
+        toolbar?.findItem(R.id.addUserNews)?.isVisible = true
     }
 
     private fun setupWorldToolbar() {
-        toolbar.findItem(R.id.search).isVisible = true
-        toolbar.findItem(R.id.sort).isVisible = true
-        toolbar.findItem(R.id.filter).isVisible = true
-        toolbar.findItem(R.id.resetAll).isVisible = true
-        toolbar.findItem(R.id.addUserNews).isVisible = false
+        toolbar?.findItem(R.id.search)?.isVisible = true
+        toolbar?.findItem(R.id.sort)?.isVisible = true
+        toolbar?.findItem(R.id.filter)?.isVisible = true
+        toolbar?.findItem(R.id.resetAll)?.isVisible = true
+        toolbar?.findItem(R.id.addUserNews)?.isVisible = false
     }
 
     override fun onCreateOptionsMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateOptionsMenu(menu, inflater)
         toolbar = menu
-        inflater.inflate(R.menu.menu, menu)
+        inflater.inflate(R.menu.menu_main_screen, menu)
         val searchItem = menu.findItem(R.id.search)
         val sortItem = menu.findItem(R.id.sort)
         val filterItem = menu.findItem(R.id.filter)
@@ -200,6 +223,13 @@ class NewsAllFragment : Fragment() {
         val resetAllItem = menu.findItem(R.id.resetAll)
         val addNewsItem = menu.findItem(R.id.addUserNews)
         val logout = menu.findItem(R.id.logout)
+
+        if (tabPosition == 0) {
+            setupUserToolbar()
+        } else if (tabPosition == 1) {
+            setupWorldToolbar()
+        }
+
         searchView = searchItem?.actionView as SearchView
         searchView.setOnSearchClickListener {
             searchView.setQuery(mNewsAllFragmentViewModel.liveData.value?.savedQuery, false)
@@ -282,15 +312,16 @@ class NewsAllFragment : Fragment() {
     private fun showFullScreenNewsFragment(position: Int) {
         val activity = context as AppCompatActivity
         val bundle = Bundle().apply {
-            putString(
-                    NEWS_URL_STRING,
-                    mNewsAllFragmentViewModel.articlesLiveData.value?.get(position)?.url
+            val fullscreenNews = if (tabPosition == 0) mNewsAllFragmentViewModel.userNewsLiveData.value?.get(position) else
+                mNewsAllFragmentViewModel.articlesLiveData.value?.get(position)
+            putParcelable(EDIT_NEWS, fullscreenNews)
+            putBoolean(
+                    AUTHOR_IS_EQUALS, fullscreenNews?.author
+                    ?.equals(mNewsAllFragmentViewModel.userLiveData.value?.peekContent()?.username) == true
             )
         }
         activity.supportFragmentManager.beginTransaction().apply {
-            replace(
-                    R.id.container,
-                    NewsDetailFragment.newInstance().apply { arguments = bundle })
+            replace(R.id.container, NewsDetailFragment.newInstance().apply { arguments = bundle })
             addToBackStack(null)
             commit()
         }
