@@ -13,6 +13,7 @@ import com.chugunova.mynews.R
 import com.chugunova.mynews.dao.ArticleDatabase
 import com.chugunova.mynews.model.*
 import com.chugunova.mynews.model.NewsRepository.Companion.DEFAULT_ITEMS_ON_PAGE
+import com.chugunova.mynews.model.NewsRepository.Companion.DEFAULT_USER_NEWS_ITEMS_ON_PAGE
 import com.chugunova.mynews.model.api.ApiHelper
 import com.chugunova.mynews.model.api.ConfigRetrofit
 import com.chugunova.mynews.service.NewsService
@@ -21,12 +22,12 @@ import com.chugunova.mynews.utils.FilterVariants
 import com.chugunova.mynews.utils.LayoutVariants
 import com.chugunova.mynews.utils.SortVariants
 import com.chugunova.mynews.utils.StringPool
+import java.net.SocketTimeoutException
+import java.util.concurrent.Executors
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.Response
-import java.net.SocketTimeoutException
-import java.util.concurrent.Executors
 
 
 class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(application) {
@@ -43,22 +44,27 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
     }
 
     private val newsRepository = NewsRepository(
-            ApiHelper(ConfigRetrofit.apiService),
-            ArticleDatabase.getInstance(application).articleDao())
+        ApiHelper(ConfigRetrofit.apiService),
+        ArticleDatabase.getInstance(application).articleDao()
+    )
 
     private val newsService = NewsService()
     private val userService = UserService()
 
+    var availableUserNewsPages = 0
+
     var savedRotationModel = SavedRotationModel(
-            0,
-            0,
-            0,
-            savedQuery = StringPool.EMPTY.value,
-            isSearch = false,
-            isFilter = false,
-            SortVariants.PUBLISHED_AT,
-            FilterVariants.DEFAULT,
-            LayoutVariants.AS_GRID
+        0,
+        0,
+        0,
+        0,
+        savedQuery = StringPool.EMPTY.value,
+        isSearch = false,
+        isFilter = false,
+        isUserNews = true,
+        SortVariants.PUBLISHED_AT,
+        FilterVariants.DEFAULT,
+        LayoutVariants.AS_GRID
     )
 
     private lateinit var token: String
@@ -68,11 +74,13 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
             val response: Response<Unit>? = news.id?.let { newsService.deleteUserNews(token, it) }
             if (response != null) {
                 if (response.isSuccessful) {
-                    this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.news_successfully_deleted)
+                    this@NewsAllFragmentViewModel.toastLiveData.value =
+                        Event(R.string.news_successfully_deleted)
                     userNewsLiveData.value?.remove(news)
                     userNewsLiveData.postValue(userNewsLiveData.value)
                 } else if (response.code() == 401) {
-                    this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.token_is_expired)
+                    this@NewsAllFragmentViewModel.toastLiveData.value =
+                        Event(R.string.token_is_expired)
                 }
             }
         }
@@ -82,7 +90,8 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
         viewModelScope.launch {
             val newsResponse: Response<NewsResponse> = newsService.saveUserNews(token, newsRequest)
             if (newsResponse.isSuccessful) {
-                this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.news_successfully_created)
+                this@NewsAllFragmentViewModel.toastLiveData.value =
+                    Event(R.string.news_successfully_created)
             }
             proceedNewsResponse(newsResponse)
         }
@@ -96,25 +105,28 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
     }
 
     private fun proceedNewsResponse(newsResponse: Response<NewsResponse>) {
-        //TODO check response code here
         if (newsResponse.isSuccessful && newsResponse.body() != null) {
             val convertedNews = convertNewsToArticle(newsResponse.body()!!)
             userNewsLiveData.value =
-                    if (userNewsLiveData.value == null) {
-                        convertedNews
-                    } else {
-                        userNewsLiveData.value?.toMutableList()?.apply {
-                            addAll(convertedNews)
-                        } as ArrayList<Article>?
-                    }
+                if (userNewsLiveData.value == null) {
+                    convertedNews
+                } else {
+                    userNewsLiveData.value?.toMutableList()?.apply {
+                        addAll(convertedNews)
+                    } as ArrayList<Article>?
+                }
         } else if (newsResponse.code() == 401) {
             this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.token_is_expired)
         }
     }
 
     private fun convertNewsToArticle(news: NewsResponse): ArrayList<Article> {
-        return arrayListOf(Article(news.id, null, news.author, news.title,
-                news.description, news.url, news.urlToImage, news.publishedAt))
+        return arrayListOf(
+            Article(
+                news.id, null, news.author, news.title,
+                news.description, news.url, news.urlToImage, news.publishedAt
+            )
+        )
     }
 
     suspend fun saveAccount(authUser: AuthenticationUser) {
@@ -122,13 +134,16 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
             try {
                 val response = userService.createUser(authUser)
                 if (response.isSuccessful) {
-                    this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.user_successfully_created)
+                    this@NewsAllFragmentViewModel.toastLiveData.value =
+                        Event(R.string.user_successfully_created)
                     login(authUser)
                 } else {
-                    this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.user_already_exist)
+                    this@NewsAllFragmentViewModel.toastLiveData.value =
+                        Event(R.string.user_already_exist)
                 }
             } catch (e: SocketTimeoutException) {
-                this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.no_connection_to_server)
+                this@NewsAllFragmentViewModel.toastLiveData.value =
+                    Event(R.string.no_connection_to_server)
             }
         }
     }
@@ -157,7 +172,7 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
     fun chooseNews() {
         when (savedRotationModel.tabLayout) {
             0 -> {
-                loadUserNews()
+                loadUserNews(false)
             }
             1 -> {
                 loadCountryNews(false)
@@ -165,27 +180,32 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
-    private fun loadUserNews() {
+    fun loadUserNews(isShowMoreButtonPressed: Boolean) {
         viewModelScope.launch {
-            if (userNewsLiveData.value.isNullOrEmpty()) {
-                val response = ConfigRetrofit.apiService.getAllUserNews(token)
+            if (userNewsLiveData.value.isNullOrEmpty() || isShowMoreButtonPressed) {
+                savedRotationModel.currentUserNewsPage++
+                val response = ConfigRetrofit.apiService.getUserNewsPaginate(
+                    token,
+                    DEFAULT_USER_NEWS_ITEMS_ON_PAGE,
+                    savedRotationModel.currentUserNewsPage
+                )
                 if (response.isSuccessful) {
                     val news = response.body()
-                    news.let {
+                    if (news != null) {
+                        recalculateUserNewsPages(news)
                         liveData.postValue(savedRotationModel)
                         userNewsLiveData.value =
-                                if (userNewsLiveData.value == null) {
-                                    it
-                                } else {
-                                    userNewsLiveData.value?.toMutableList()?.apply {
-                                        if (it != null) {
-                                            addAll(it)
-                                        }
-                                    } as ArrayList<Article>
-                                }
+                            if (userNewsLiveData.value == null) {
+                                news.articles
+                            } else {
+                                userNewsLiveData.value?.toMutableList()?.apply {
+                                    addAll(news.articles)
+                                } as ArrayList<Article>
+                            }
                     }
                 } else if (response.code() == 401) {
-                    this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.token_is_expired)
+                    this@NewsAllFragmentViewModel.toastLiveData.value =
+                        Event(R.string.token_is_expired)
                 }
             } else {
                 userNewsLiveData.value = userNewsLiveData.value
@@ -201,30 +221,31 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
                 viewModelScope.launch {
                     savedRotationModel.currentCountryPage++
                     val news = newsRepository.requestNews(
-                            isOnline(),
-                            isSearch = false,
-                            StringPool.US.value,
-                            savedRotationModel.currentCountryPage,
-                            q = StringPool.US.value,
-                            0,
-                            sortBy = StringPool.EMPTY.value,
-                            token
+                        isOnline(),
+                        isSearch = false,
+                        StringPool.US.value,
+                        savedRotationModel.currentCountryPage,
+                        q = StringPool.US.value,
+                        0,
+                        sortBy = StringPool.EMPTY.value,
+                        token
                     )
                     myHandler.post {
                         if (news == null) {
-                            this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.token_is_expired)
+                            this@NewsAllFragmentViewModel.toastLiveData.value =
+                                Event(R.string.token_is_expired)
                             savedRotationModel.currentCountryPage = 0
                             savedRotationModel.tabLayout = 0
                         } else {
                             liveData.postValue(savedRotationModel)
                             articlesLiveData.value =
-                                    if (articlesLiveData.value == null) {
-                                        news
-                                    } else {
-                                        articlesLiveData.value?.toMutableList()?.apply {
-                                            addAll(news)
-                                        } as ArrayList<Article>
-                                    }
+                                if (articlesLiveData.value == null) {
+                                    news
+                                } else {
+                                    articlesLiveData.value?.toMutableList()?.apply {
+                                        addAll(news)
+                                    } as ArrayList<Article>
+                                }
                         }
                     }
                 }
@@ -234,13 +255,19 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
         }
     }
 
+    private fun recalculateUserNewsPages(response: LegacyNewsResponse) {
+        val fullPages = response.totalResults / DEFAULT_USER_NEWS_ITEMS_ON_PAGE
+        val lost: Int = response.totalResults % DEFAULT_USER_NEWS_ITEMS_ON_PAGE
+        availableUserNewsPages = fullPages + if (lost > 0) 1 else 0
+    }
+
     fun searchNews(
-            query: String?,
-            pageSize: Int,
-            sortBy: SortVariants?,
-            filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?,
-            isFilterAction: Boolean,
-            isContinue: Boolean
+        query: String?,
+        pageSize: Int,
+        sortBy: SortVariants?,
+        filterNews: ((ArrayList<Article>, FilterVariants) -> ArrayList<Article>)?,
+        isFilterAction: Boolean,
+        isContinue: Boolean
     ) {
         viewModelScope.launch {
             try {
@@ -255,40 +282,41 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
                 query?.let {
                     val news = withContext(Dispatchers.IO) {
                         newsRepository.requestNews(
-                                isOnline(),
-                                isSearch = true,
-                                StringPool.EMPTY.value,
-                                savedRotationModel.currentSearchPage,
-                                q = it,
-                                pageSize,
-                                sortBy?.sortBy,
-                                token
+                            isOnline(),
+                            isSearch = true,
+                            StringPool.EMPTY.value,
+                            savedRotationModel.currentSearchPage,
+                            q = it,
+                            pageSize,
+                            sortBy?.sortBy,
+                            token
                         )
                     }
                     if (news == null) {
-                        this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.token_is_expired)
+                        this@NewsAllFragmentViewModel.toastLiveData.value =
+                            Event(R.string.token_is_expired)
                     } else {
                         if (news.isEmpty()) {
                             savedRotationModel.currentSearchPage = 1
                         } else {
                             val newArticles =
-                                    if (filterNews != null)
-                                        filterNews(news, savedRotationModel.savedFilterParameter)
-                                    else
-                                        news
+                                if (filterNews != null)
+                                    filterNews(news, savedRotationModel.savedFilterParameter)
+                                else
+                                    news
                             if (sortBy != null) {
                                 savedRotationModel.savedSortByParameter = sortBy
                             }
                             savedRotationModel.savedQuery = query
                             liveData.postValue(savedRotationModel)
                             articlesLiveData.value =
-                                    if (articlesLiveData.value == null) {
-                                        newArticles
-                                    } else {
-                                        articlesLiveData.value?.toMutableList()?.apply {
-                                            addAll(newArticles)
-                                        } as ArrayList<Article>
-                                    }
+                                if (articlesLiveData.value == null) {
+                                    newArticles
+                                } else {
+                                    articlesLiveData.value?.toMutableList()?.apply {
+                                        addAll(newArticles)
+                                    } as ArrayList<Article>
+                                }
                         }
                         showToast(news)
                     }
@@ -321,15 +349,17 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
         userNewsLiveData.value?.clear()
         articlesLiveData.value?.clear()
         savedRotationModel = SavedRotationModel(
-                0,
-                0,
-                0,
-                savedQuery = StringPool.EMPTY.value,
-                isSearch = false,
-                isFilter = false,
-                SortVariants.PUBLISHED_AT,
-                FilterVariants.DEFAULT,
-                LayoutVariants.AS_GRID
+            0,
+            0,
+            0,
+            0,
+            savedQuery = StringPool.EMPTY.value,
+            isSearch = false,
+            isFilter = false,
+            isUserNews = true,
+            SortVariants.PUBLISHED_AT,
+            FilterVariants.DEFAULT,
+            LayoutVariants.AS_GRID
         )
         token = ""
     }
@@ -339,7 +369,8 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
             if (isOnline()) {
                 this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.no_content)
             } else {
-                this@NewsAllFragmentViewModel.toastLiveData.value = Event(R.string.no_matching_results)
+                this@NewsAllFragmentViewModel.toastLiveData.value =
+                    Event(R.string.no_matching_results)
             }
             articlesLiveData.postValue(arrayListOf())
         }
@@ -356,21 +387,11 @@ class NewsAllFragmentViewModel(application: Application) : AndroidViewModel(appl
     }
 
     private fun isOnline(): Boolean {
-        val cm = getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val cm =
+            getApplication<Application>().getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val networkCapabilities = cm.activeNetwork ?: return false
         val netInfo = cm.getNetworkCapabilities(networkCapabilities)
         return netInfo != null && netInfo.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
                 && netInfo.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
-
-        /*return try {
-            val timeoutMs = 1500
-            val sock = Socket()
-            val socked: SocketAddress = InetSocketAddress("8.8.8.8", 53)
-            sock.connect(socked, timeoutMs)
-            sock.close()
-            true
-        } catch (e: IOException) {
-            false
-        }*/
     }
 }

@@ -1,8 +1,20 @@
 package com.chugunova.mynews.model.api
 
-import com.chugunova.mynews.model.*
+import com.chugunova.mynews.model.Article
+import com.chugunova.mynews.model.AuthenticationUser
+import com.chugunova.mynews.model.LegacyNewsResponse
+import com.chugunova.mynews.model.NewsRequest
+import com.chugunova.mynews.model.NewsResponse
+import com.chugunova.mynews.model.UserResponse
 import retrofit2.Response
-import retrofit2.http.*
+import retrofit2.http.Body
+import retrofit2.http.DELETE
+import retrofit2.http.GET
+import retrofit2.http.Header
+import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
+import retrofit2.http.Query
 
 interface NewsApiService {
 
@@ -39,17 +51,24 @@ interface NewsApiService {
     @GET("/news/all")
     suspend fun getAllUserNews(@Header("Authorization") token: String): Response<ArrayList<Article>?>
 
+    @GET("/news/all/paginate")
+    suspend fun getUserNewsPaginate(
+        @Header("Authorization") token: String,
+        @Query("pageSize") pageSize: Int,
+        @Query("page") page: Int
+    ): Response<LegacyNewsResponse>
+
     @POST("/news/new")
     suspend fun saveUserNews(
-            @Header("Authorization") token: String,
-            @Body article: NewsRequest
+        @Header("Authorization") token: String,
+        @Body article: NewsRequest
     ): Response<NewsResponse>
 
     @PUT("/news/{newsId}")
     suspend fun updateUserNews(
-            @Header("Authorization") token: String,
-            @Path("newsId") id: Long,
-            @Body newsRequest: NewsRequest
+        @Header("Authorization") token: String,
+        @Path("newsId") id: Long,
+        @Body newsRequest: NewsRequest
     ): Response<NewsResponse>
 
     @DELETE("/news/{newsId}")

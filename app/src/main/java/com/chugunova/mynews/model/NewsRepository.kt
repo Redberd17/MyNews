@@ -10,7 +10,8 @@ class NewsRepository(private val apiHelper: ApiHelper, private var articleDao: A
 
     companion object {
         const val DEFAULT_ITEMS_ON_PAGE = 20
-        private const val MAX_AVAILABLE_NEWS = 100
+        const val DEFAULT_USER_NEWS_ITEMS_ON_PAGE = 6
+        const val MAX_AVAILABLE_NEWS = 100
         var availablePages = 0
     }
 
@@ -69,13 +70,13 @@ class NewsRepository(private val apiHelper: ApiHelper, private var articleDao: A
 
     private fun recalculatePages(response: LegacyNewsResponse) {
         availablePagesForDownloading =
-                if (response.totalResults > MAX_AVAILABLE_NEWS) {
-                    MAX_AVAILABLE_NEWS / DEFAULT_ITEMS_ON_PAGE
-                } else {
-                    val fullPages = response.totalResults / DEFAULT_ITEMS_ON_PAGE
-                    val lost: Int = response.totalResults % DEFAULT_ITEMS_ON_PAGE
-                    fullPages + if (lost > 0) 1 else 0
-                }
+            if (response.totalResults > MAX_AVAILABLE_NEWS) {
+                MAX_AVAILABLE_NEWS / DEFAULT_ITEMS_ON_PAGE
+            } else {
+                val fullPages = response.totalResults / DEFAULT_ITEMS_ON_PAGE
+                val lost: Int = response.totalResults % DEFAULT_ITEMS_ON_PAGE
+                fullPages + if (lost > 0) 1 else 0
+            }
     }
 
     private fun recalculatePages(articles: ArrayList<Article>) {

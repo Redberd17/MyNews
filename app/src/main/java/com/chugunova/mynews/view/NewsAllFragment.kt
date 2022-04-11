@@ -3,7 +3,11 @@ package com.chugunova.mynews.view
 import android.annotation.SuppressLint
 import android.os.Bundle
 import android.util.TypedValue
-import android.view.*
+import android.view.LayoutInflater
+import android.view.Menu
+import android.view.MenuInflater
+import android.view.View
+import android.view.ViewGroup
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.Toast
@@ -29,10 +33,10 @@ import com.chugunova.mynews.viewmodel.NewsAllFragmentViewModel
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.google.android.material.tabs.TabLayout
-import kotlinx.android.synthetic.main.main_fragment.*
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.stream.Collectors
+import kotlinx.android.synthetic.main.main_fragment.tabLayout
 
 class NewsAllFragment : Fragment() {
 
@@ -68,17 +72,18 @@ class NewsAllFragment : Fragment() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setHasOptionsMenu(true)
-        mNewsAllFragmentViewModel = ViewModelProvider(requireActivity(),
-                NewsAllFragmentFactory(requireActivity().application)
+        mNewsAllFragmentViewModel = ViewModelProvider(
+            requireActivity(),
+            NewsAllFragmentFactory(requireActivity().application)
         )[NewsAllFragmentViewModel::class.java]
         mNewsAllFragmentViewModel.toastLiveData.observe(this, { it ->
             it.getContentIfNotHandled()?.let {
                 Toast.makeText(context, it, Toast.LENGTH_SHORT).show()
                 if (it == R.string.token_is_expired) {
                     requireActivity().supportFragmentManager
-                            .beginTransaction()
-                            .replace(R.id.container, LoginFragment.newInstance())
-                            .commit()
+                        .beginTransaction()
+                        .replace(R.id.container, LoginFragment.newInstance())
+                        .commit()
                 }
             }
         })
@@ -100,8 +105,8 @@ class NewsAllFragment : Fragment() {
     }
 
     override fun onCreateView(
-            inflater: LayoutInflater, container: ViewGroup?,
-            savedInstanceState: Bundle?
+        inflater: LayoutInflater, container: ViewGroup?,
+        savedInstanceState: Bundle?
     ): View {
         return inflater.inflate(layout, container, false)
     }
@@ -133,17 +138,19 @@ class NewsAllFragment : Fragment() {
         tabLayout.addOnTabSelectedListener(object : TabLayout.OnTabSelectedListener {
             override fun onTabSelected(tab: TabLayout.Tab?) {
                 if (tab?.position == 0) {
-                    // need to get user news here
+                    hideMoreButton()
                     mNewsAllFragmentViewModel.savedRotationModel.tabLayout = 0
                     tabPosition = mNewsAllFragmentViewModel.savedRotationModel.tabLayout
+                    mNewsAllFragmentViewModel.savedRotationModel.isUserNews = true
                     if (toolbar != null) {
                         setupUserToolbar()
                     }
                 }
                 if (tab?.position == 1) {
-                    // need to get world news here
+                    hideMoreButton()
                     mNewsAllFragmentViewModel.savedRotationModel.tabLayout = 1
                     tabPosition = mNewsAllFragmentViewModel.savedRotationModel.tabLayout
+                    mNewsAllFragmentViewModel.savedRotationModel.isUserNews = false
                     if (toolbar != null) {
                         setupWorldToolbar()
                     }
@@ -165,9 +172,11 @@ class NewsAllFragment : Fragment() {
             override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
                 super.onScrolled(recyclerView, dx, dy)
                 if (!recyclerView.canScrollVertically(SCROLL_VERTICALLY_DIRECTION)
-                        && if (mNewsAllFragmentViewModel.liveData.value?.isSearch == true)
-                            mNewsAllFragmentViewModel.liveData.value?.let { it.currentSearchPage < availablePages } == true
-                        else mNewsAllFragmentViewModel.liveData.value?.let { it.currentCountryPage < availablePages } == true
+                    && if (mNewsAllFragmentViewModel.liveData.value?.isSearch == true && mNewsAllFragmentViewModel.liveData.value?.isUserNews == false)
+                        mNewsAllFragmentViewModel.liveData.value?.let { it.currentSearchPage < availablePages } == true
+                    else if (mNewsAllFragmentViewModel.liveData.value?.isUserNews == true)
+                        mNewsAllFragmentViewModel.liveData.value?.let { it.currentUserNewsPage < mNewsAllFragmentViewModel.availableUserNewsPages } == true
+                    else mNewsAllFragmentViewModel.liveData.value?.let { it.currentCountryPage < availablePages } == true
                 ) {
                     if (mNewsAllFragmentViewModel.liveData.value?.isFilter != true)
                         showMoreButton()
@@ -177,17 +186,22 @@ class NewsAllFragment : Fragment() {
             }
         })
 
+
         showMoreButton.setOnClickListener {
-            if (mNewsAllFragmentViewModel.liveData.value?.savedQuery?.isNotEmpty() == true) {
+            if (mNewsAllFragmentViewModel.liveData.value?.isUserNews == true) {
+                showProgressBar()
+                hideMoreButton()
+                mNewsAllFragmentViewModel.loadUserNews(true)
+            } else if (mNewsAllFragmentViewModel.liveData.value?.savedQuery?.isNotEmpty() == true) {
                 showProgressBar()
                 hideMoreButton()
                 mNewsAllFragmentViewModel.searchNews(
-                        mNewsAllFragmentViewModel.liveData.value?.savedQuery,
-                        DEFAULT_ITEMS_ON_PAGE,
-                        mNewsAllFragmentViewModel.liveData.value?.savedSortByParameter,
-                        filterNews = null,
-                        isFilterAction = false,
-                        isContinue = true
+                    mNewsAllFragmentViewModel.liveData.value?.savedQuery,
+                    DEFAULT_ITEMS_ON_PAGE,
+                    mNewsAllFragmentViewModel.liveData.value?.savedSortByParameter,
+                    filterNews = null,
+                    isFilterAction = false,
+                    isContinue = true
                 )
             } else {
                 hideMoreButton()
@@ -238,21 +252,21 @@ class NewsAllFragment : Fragment() {
             override fun onQueryTextSubmit(query: String?): Boolean {
                 hideMoreButton()
                 val performFilter =
-                        mNewsAllFragmentViewModel.liveData.value?.savedFilterParameter != FilterVariants.DEFAULT
+                    mNewsAllFragmentViewModel.liveData.value?.savedFilterParameter != FilterVariants.DEFAULT
                 NewsAllFragmentViewModel.count = -NewsRepository.DEFAULT_ITEMS_ON_PAGE
                 mNewsAllFragmentViewModel.searchNews(
-                        query,
-                        if (performFilter)
-                            FILTERING_ITEMS_ON_PAGE
-                        else
-                            DEFAULT_ITEMS_ON_PAGE,
-                        mNewsAllFragmentViewModel.liveData.value?.savedSortByParameter,
-                        if (performFilter)
-                            ::filterNews
-                        else
-                            null,
-                        performFilter,
-                        isContinue = false
+                    query,
+                    if (performFilter)
+                        FILTERING_ITEMS_ON_PAGE
+                    else
+                        DEFAULT_ITEMS_ON_PAGE,
+                    mNewsAllFragmentViewModel.liveData.value?.savedSortByParameter,
+                    if (performFilter)
+                        ::filterNews
+                    else
+                        null,
+                    performFilter,
+                    isContinue = false
                 )
                 return false
             }
@@ -292,19 +306,19 @@ class NewsAllFragment : Fragment() {
         }
         addNewsItem.setOnMenuItemClickListener {
             requireActivity().supportFragmentManager
-                    .beginTransaction()
-                    .replace(R.id.container, AddUserNewsFragment.newInstance())
-                    .addToBackStack(null)
-                    .commit()
+                .beginTransaction()
+                .replace(R.id.container, AddUserNewsFragment.newInstance())
+                .addToBackStack(null)
+                .commit()
             false
         }
         logout.setOnMenuItemClickListener {
             searchItem.collapseActionView()
             mNewsAllFragmentViewModel.clearUserDetails()
             requireActivity().supportFragmentManager
-                    .beginTransaction()
-                    .replace(R.id.container, LoginFragment.newInstance())
-                    .commit()
+                .beginTransaction()
+                .replace(R.id.container, LoginFragment.newInstance())
+                .commit()
             true
         }
     }
@@ -312,11 +326,12 @@ class NewsAllFragment : Fragment() {
     private fun showFullScreenNewsFragment(position: Int) {
         val activity = context as AppCompatActivity
         val bundle = Bundle().apply {
-            val fullscreenNews = if (tabPosition == 0) mNewsAllFragmentViewModel.userNewsLiveData.value?.get(position) else
-                mNewsAllFragmentViewModel.articlesLiveData.value?.get(position)
+            val fullscreenNews =
+                if (tabPosition == 0) mNewsAllFragmentViewModel.userNewsLiveData.value?.get(position) else
+                    mNewsAllFragmentViewModel.articlesLiveData.value?.get(position)
             putParcelable(EDIT_NEWS, fullscreenNews)
             putBoolean(
-                    AUTHOR_IS_EQUALS, fullscreenNews?.author
+                AUTHOR_IS_EQUALS, fullscreenNews?.author
                     ?.equals(mNewsAllFragmentViewModel.userLiveData.value?.peekContent()?.username) == true
             )
         }
@@ -330,9 +345,9 @@ class NewsAllFragment : Fragment() {
     private fun showSortDialog() {
         if (::sortDialog.isInitialized) {
             highlightSortAction(
-                    sortDialog.findViewById(R.id.relevancy),
-                    sortDialog.findViewById(R.id.popularity),
-                    sortDialog.findViewById(R.id.publishedAt)
+                sortDialog.findViewById(R.id.relevancy),
+                sortDialog.findViewById(R.id.popularity),
+                sortDialog.findViewById(R.id.publishedAt)
             )
             sortDialog.show()
             return
@@ -360,9 +375,9 @@ class NewsAllFragment : Fragment() {
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private fun highlightSortAction(
-            relevancy: LinearLayout?,
-            popularity: LinearLayout?,
-            publishedAt: LinearLayout?
+        relevancy: LinearLayout?,
+        popularity: LinearLayout?,
+        publishedAt: LinearLayout?
     ) {
         val typedValue = TypedValue()
         val theme = requireContext().theme
@@ -390,9 +405,9 @@ class NewsAllFragment : Fragment() {
     private fun showFilterDialog() {
         if (::filterDialog.isInitialized) {
             highlightFilterAction(
-                    filterDialog.findViewById(R.id.today),
-                    filterDialog.findViewById(R.id.thisWeek),
-                    filterDialog.findViewById(R.id.thisMonth)
+                filterDialog.findViewById(R.id.today),
+                filterDialog.findViewById(R.id.thisWeek),
+                filterDialog.findViewById(R.id.thisMonth)
             )
             filterDialog.show()
             return
@@ -425,9 +440,9 @@ class NewsAllFragment : Fragment() {
 
     @SuppressLint("UseCompatLoadingForDrawables")
     private fun highlightFilterAction(
-            today: LinearLayout?,
-            thisWeek: LinearLayout?,
-            thisMonth: LinearLayout?,
+        today: LinearLayout?,
+        thisWeek: LinearLayout?,
+        thisMonth: LinearLayout?,
     ) {
         val typedValue = TypedValue()
         val theme = requireContext().theme
@@ -494,35 +509,35 @@ class NewsAllFragment : Fragment() {
 
     private fun performSortAction(sortBy: SortVariants, bottomSheetDialog: BottomSheetDialog) {
         mNewsAllFragmentViewModel.searchNews(
-                mNewsAllFragmentViewModel.liveData.value?.savedQuery,
-                DEFAULT_ITEMS_ON_PAGE,
-                sortBy,
-                filterNews = null,
-                isFilterAction = false,
-                isContinue = false
+            mNewsAllFragmentViewModel.liveData.value?.savedQuery,
+            DEFAULT_ITEMS_ON_PAGE,
+            sortBy,
+            filterNews = null,
+            isFilterAction = false,
+            isContinue = false
         )
         bottomSheetDialog.dismiss()
         clearFocus()
     }
 
     private fun performFilterAction(
-            filterBy: FilterVariants,
-            bottomSheetDialog: BottomSheetDialog
+        filterBy: FilterVariants,
+        bottomSheetDialog: BottomSheetDialog
     ) {
         val doFilter = filterBy != FilterVariants.DEFAULT
         mNewsAllFragmentViewModel.searchNews(
-                mNewsAllFragmentViewModel.liveData.value?.savedQuery,
-                if (doFilter)
-                    FILTERING_ITEMS_ON_PAGE
-                else
-                    DEFAULT_ITEMS_ON_PAGE,
-                mNewsAllFragmentViewModel.liveData.value?.savedSortByParameter,
-                if (doFilter)
-                    ::filterNews
-                else
-                    null,
-                doFilter,
-                isContinue = false
+            mNewsAllFragmentViewModel.liveData.value?.savedQuery,
+            if (doFilter)
+                FILTERING_ITEMS_ON_PAGE
+            else
+                DEFAULT_ITEMS_ON_PAGE,
+            mNewsAllFragmentViewModel.liveData.value?.savedSortByParameter,
+            if (doFilter)
+                ::filterNews
+            else
+                null,
+            doFilter,
+            isContinue = false
         )
         hideMoreButton()
         bottomSheetDialog.dismiss()
@@ -530,27 +545,27 @@ class NewsAllFragment : Fragment() {
     }
 
     private fun filterNews(
-            newsItems: ArrayList<Article>,
-            filterBy: FilterVariants
+        newsItems: ArrayList<Article>,
+        filterBy: FilterVariants
     ): ArrayList<Article> {
         val currentDate = LocalDateTime.now()
         val filteredNews = newsItems.stream()
-                .filter { newsItem ->
-                    val date = LocalDateTime.parse(
-                            newsItem.publishedAt,
-                            DateTimeFormatter.ofPattern(StringPool.ISO_DATE_TIME.value)
+            .filter { newsItem ->
+                val date = LocalDateTime.parse(
+                    newsItem.publishedAt,
+                    DateTimeFormatter.ofPattern(StringPool.ISO_DATE_TIME.value)
+                )
+                when (filterBy) {
+                    FilterVariants.TODAY -> date.dayOfYear.compareTo(currentDate.dayOfYear) == ZERO
+                    FilterVariants.THIS_WEEK -> date.isBefore(currentDate) && date.isAfter(
+                        currentDate.minusWeeks(ONE.toLong())
                     )
-                    when (filterBy) {
-                        FilterVariants.TODAY -> date.dayOfYear.compareTo(currentDate.dayOfYear) == ZERO
-                        FilterVariants.THIS_WEEK -> date.isBefore(currentDate) && date.isAfter(
-                                currentDate.minusWeeks(ONE.toLong())
-                        )
-                        FilterVariants.THIS_MONTH -> date.isBefore(currentDate) && date.isAfter(
-                                currentDate.minusMonths(ONE.toLong())
-                        )
-                        FilterVariants.DEFAULT -> false
-                    }
-                }.collect(Collectors.toList())
+                    FilterVariants.THIS_MONTH -> date.isBefore(currentDate) && date.isAfter(
+                        currentDate.minusMonths(ONE.toLong())
+                    )
+                    FilterVariants.DEFAULT -> false
+                }
+            }.collect(Collectors.toList())
         if (filteredNews.isEmpty())
             showToast(R.string.no_matching_results)
         return filteredNews as ArrayList<Article>
@@ -563,8 +578,8 @@ class NewsAllFragment : Fragment() {
 
     private fun showProgressBar() {
         if (mNewsAllFragmentViewModel.liveData.value?.isSearch == true && mNewsAllFragmentViewModel.articlesLiveData.value?.isEmpty() == true ||
-                mNewsAllFragmentViewModel.liveData.value?.isSearch != true && mNewsAllFragmentViewModel.articlesLiveData.value?.isEmpty() == true ||
-                mNewsAllFragmentViewModel.liveData.value?.isFilter == true && mNewsAllFragmentViewModel.articlesLiveData.value?.isNotEmpty() == true
+            mNewsAllFragmentViewModel.liveData.value?.isSearch != true && mNewsAllFragmentViewModel.articlesLiveData.value?.isEmpty() == true ||
+            mNewsAllFragmentViewModel.liveData.value?.isFilter == true && mNewsAllFragmentViewModel.articlesLiveData.value?.isNotEmpty() == true
         )
             progressBar.visibility = View.VISIBLE
     }
